@@ -124,3 +124,4 @@ GitHub Pages(main 브랜치 루트)로 ~1분 내 반영.
 | 2026-06-26 | 초판. 4섹션(미중·동북아·중동·유럽), T1~T8 |
 | 2026-08-27 | 전면 개정. Prior Book Scorecard·Errata·Cross-Asset Dashboard·Hard Catalyst Calendar 신설. 우선순위 1에 **미국 통화·재정(초장기 텀프리미엄)** 추가 → 5섹션. 블로터 N1~N8로 재구성 |
 | 2026-11-23 | industry-analyzer에서 분리, 일일 갱신 체계 도입. (08-27판은 원 레포에 push되지 않아 06-26판에서 출발) |
+| 2026-11-23 (full) | 전면 개정(150일 경과·월요일). Errata 6건(미중 2025/2026 혼동, Strait Thunder, HSI/HSCEI 등). Scorecard: T1·T3 PAID, T2·T4·T5·T6·T7 LOSS. 우선순위 1 미국 통화·재정(Fed 인상 × AI 주식 급락) 신설, 미중 1→5. 블로터 N1~N8 |
