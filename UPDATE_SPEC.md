@@ -126,3 +126,4 @@ GitHub Pages(main 브랜치 루트)로 ~1분 내 반영.
 | 2026-11-23 | industry-analyzer에서 분리, 일일 갱신 체계 도입. (08-27판은 원 레포에 push되지 않아 06-26판에서 출발) |
 | 2026-11-23 (full) | 전면 개정(150일 경과·월요일). Errata 6건(미중 2025/2026 혼동, Strait Thunder, HSI/HSCEI 등). Scorecard: T1·T3 PAID, T2·T4·T5·T6·T7 LOSS. 우선순위 1 미국 통화·재정(Fed 인상 × AI 주식 급락) 신설, 미중 1→5. 블로터 N1~N8 |
 | 2026-11-24 (daily) | 일일 갱신. NVIDIA Huang 복귀 → S&P +4.73%·VIX 27.1, 앞단 매파 유지(2y 4.66-4.70%·DXY 104.3). Brent $89.37. Errata 2건(NVIDIA 경위·KOSPI 종가). Scorecard에 N1~N8 일일 추적표 추가. 반증 도달 0건, 확인 실패 26건 |
+| 2026-11-25 (daily) | 일일 갱신. 美 AI 칩 되돌림(NVDA 약 -7.4%, Nasdaq -1.48%)·11월 소비자신뢰 103.3 → 2y ~4.685%, Jan 추가 인상 69%. 아시아 지연 급반등(KOSPI +6.32% 5,006·SK하이닉스 +6.73%·TAIEX +8.99%) → N5 시차 손실 해소. Brent $91.40(+2.3%). Errata 2건(NVDA 11/23 종가·트럼프 발언 해석). 반증 도달 0건, 확인 실패 26건 |
