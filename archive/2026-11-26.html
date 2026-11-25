@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Global Macro Intelligence Report - Buy-Side L/S Desk</title>
+<style>
+  :root{
+    --bg:#f4f5f7; --paper:#ffffff; --ink:#1a2230; --muted:#5b6675; --faint:#8a94a3;
+    --line:#dfe3ea; --line2:#eceff3;
+    --bar:#0d1422; --bar2:#161f33;
+    --long-ink:#0f6e5c; --long-bg:#e7f4f0; --long-line:#bfe3d9;
+    --short-ink:#b42318; --short-bg:#fdecea; --short-line:#f4c7c2;
+    --warn-ink:#b54708; --warn-bg:#fff5e6; --warn-line:#f5d9a8;
+    --rv-ink:#3538a8; --rv-bg:#ecedfb; --rv-line:#c9cbf2;
+    --f:#1f5fa8; --m:#7b3fb0; --v:#b06a00;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);
+    font-family:"Segoe UI","Noto Sans KR",Arial,sans-serif;font-size:13px;line-height:1.5;}
+  .wrap{max-width:1280px;margin:0 auto;padding:0 18px 60px;}
+
+  /* Header bar */
+  .topbar{position:sticky;top:0;z-index:50;background:var(--bar);color:#e9edf3;
+    border-bottom:2px solid #2a3852;}
+  .topbar .inner{max-width:1280px;margin:0 auto;padding:12px 18px;
+    display:flex;flex-wrap:wrap;align-items:baseline;gap:10px 18px;}
+  .topbar h1{font-size:16px;font-weight:700;letter-spacing:.2px;color:#fff;}
+  .topbar .desk{font-size:11px;color:#9fb0c9;font-weight:600;text-transform:uppercase;letter-spacing:.08em;}
+  .topbar .asof{font-size:12px;color:#ffd58a;font-weight:600;margin-left:auto;}
+  .legend{max-width:1280px;margin:0 auto;padding:7px 18px;display:flex;flex-wrap:wrap;gap:6px 14px;
+    background:var(--bar2);color:#b9c4d6;font-size:11px;}
+  .legend b{color:#e9edf3;}
+  .tag{display:inline-block;padding:0 5px;border-radius:3px;font-size:10px;font-weight:700;
+    line-height:15px;vertical-align:baseline;}
+  .t-f{background:#e3edf8;color:var(--f);}
+  .t-m{background:#f1e8f8;color:var(--m);}
+  .t-v{background:#fbf0dd;color:var(--v);}
+  .t-verify{background:var(--warn-bg);color:var(--warn-ink);border:1px solid var(--warn-line);}
+  .t-pc{background:#fdecea;color:var(--short-ink);border:1px dashed var(--short-line);}
+
+  /* vintage banner */
+  .vintage{background:#fff8ec;border:1px solid var(--warn-line);border-left:4px solid var(--warn-ink);
+    padding:9px 13px;margin:16px 0;font-size:11.5px;color:#5a4a2e;border-radius:4px;}
+  .vintage b{color:var(--warn-ink);}
+
+  section{margin-top:26px;}
+  h2.sec{font-size:13px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--ink);border-bottom:2px solid var(--ink);padding-bottom:5px;margin-bottom:12px;
+    display:flex;align-items:baseline;gap:10px;}
+  h2.sec .n{font-size:11px;color:var(--faint);font-weight:700;}
+  h2.sec .hint{font-size:10.5px;color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0;margin-left:auto;}
+
+  /* tables */
+  table{width:100%;border-collapse:collapse;background:var(--paper);font-size:12px;}
+  th,td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top;}
+  thead th{background:#eef1f5;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;
+    color:var(--muted);font-weight:700;white-space:nowrap;}
+  tbody tr:nth-child(even){background:#fafbfc;}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .blotter td{font-size:11.5px;}
+  .dir{font-weight:700;font-size:11px;white-space:nowrap;}
+  .dir.long{color:var(--long-ink);}
+  .dir.short{color:var(--short-ink);}
+  .dir.rv{color:var(--rv-ink);}
+  .conv{font-weight:800;font-variant-numeric:tabular-nums;}
+  .convbar{display:inline-block;width:46px;height:6px;background:var(--line);border-radius:3px;
+    overflow:hidden;vertical-align:middle;margin-left:6px;}
+  .convbar i{display:block;height:100%;background:var(--ink);}
+  .inval{color:var(--short-ink);font-size:11px;}
+  .idtag{font-weight:800;color:var(--ink);}
+
+  /* manager note */
+  .note{background:var(--paper);border:1px solid var(--line);border-top:3px solid var(--ink);
+    border-radius:4px;padding:13px 16px;}
+  .note ol{margin:0;padding-left:20px;}
+  .note li{margin:4px 0;}
+  .note .lead{font-weight:700;}
+
+  /* section cards grid */
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:5px;overflow:hidden;
+    display:flex;flex-direction:column;}
+  .card .head{background:#101a2c;color:#fff;padding:9px 13px;}
+  .card .head .k{font-size:10px;color:#8fa3c2;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}
+  .card .head .t{font-size:14px;font-weight:700;margin-top:1px;}
+  .card .head .t small{font-weight:500;color:#b9c6da;font-size:11px;}
+  .card .body{padding:11px 13px;display:flex;flex-direction:column;gap:9px;}
+  .blk{}
+  .blk .lbl{font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--rv-ink);
+    margin-bottom:3px;}
+  .blk .lbl.v{color:var(--v);}
+  .blk p{margin:0;font-size:11.8px;}
+  .blk ul{margin:0;padding-left:15px;}
+  .blk li{margin:2px 0;font-size:11.6px;}
+  .variant{background:var(--rv-bg);border:1px solid var(--rv-line);border-radius:4px;padding:8px 10px;}
+  .variant .lbl{color:var(--rv-ink);}
+  .cross{font-size:11px;color:var(--muted);border-top:1px dashed var(--line);padding-top:7px;}
+  .cross b{color:var(--ink);}
+  .trig{background:var(--warn-bg);border:1px solid var(--warn-line);border-radius:4px;padding:7px 9px;}
+  .trig .lbl{color:var(--warn-ink);}
+  .trig li{margin:3px 0;}
+  .scn{display:flex;gap:6px;flex-wrap:wrap;}
+  .scn .s{flex:1;min-width:90px;border:1px solid var(--line);border-radius:4px;padding:5px 7px;font-size:10.8px;}
+  .scn .s .p{font-weight:800;font-size:13px;}
+  .scn .s.base{background:#f5f7fa;}
+  .scn .s.bull{background:var(--long-bg);} .scn .s.bull .p{color:var(--long-ink);}
+  .scn .s.bear{background:var(--short-bg);} .scn .s.bear .p{color:var(--short-ink);}
+  .scn .s.tail{background:#1a1f2e;color:#f0d089;border-color:#2a3247;} .scn .s.tail .p{color:#ffcf6b;}
+  .trades-inline{font-size:11px;}
+  .trades-inline code{background:#eef1f5;border:1px solid var(--line);border-radius:3px;padding:0 4px;
+    font-family:"Segoe UI","Noto Sans KR",monospace;font-weight:700;color:var(--ink);}
+
+  /* checklist */
+  .check li{margin:5px 0;font-size:12px;}
+  .pill{display:inline-block;background:#eef1f5;border:1px solid var(--line);border-radius:10px;
+    padding:0 7px;font-size:10px;font-weight:700;color:var(--muted);margin-right:6px;}
+
+  .foot{margin-top:30px;padding-top:12px;border-top:1px solid var(--line);
+    font-size:10.5px;color:var(--faint);}
+  a{color:var(--f);}
+
+  /* added 2026-11-23: mobile table wrapper + scorecard result badges */
+  .tblwrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .tblwrap table{min-width:720px;}
+  .res{display:inline-block;padding:0 6px;border-radius:3px;font-size:10px;font-weight:800;line-height:16px;white-space:nowrap;}
+  .res.paid{background:var(--long-bg);color:var(--long-ink);border:1px solid var(--long-line);}
+  .res.loss{background:var(--short-bg);color:var(--short-ink);border:1px solid var(--short-line);}
+  .res.flat{background:#eef1f5;color:var(--muted);border:1px solid var(--line);}
+  .badge-new{display:inline-block;background:var(--rv-ink);color:#fff;border-radius:3px;padding:0 5px;font-size:9.5px;font-weight:800;margin-left:4px;vertical-align:1px;}
+  .lin{font-size:10.5px;color:var(--muted);}
+  .errata{background:var(--short-bg);border:1px solid var(--short-line);border-left:4px solid var(--short-ink);border-radius:4px;padding:10px 14px;}
+  .errata li{margin:4px 0 4px 16px;font-size:11.8px;}
+  .today{background:var(--rv-bg);border:1px solid var(--rv-line);border-radius:4px;padding:8px 12px;margin-bottom:10px;font-size:12px;}
+  .today b{color:var(--rv-ink);}
+  .smallnote{font-size:10.5px;color:var(--muted);margin-top:5px;}
+  .trig li.hit{color:var(--short-ink);font-weight:600;}
+  @media (max-width:880px){.cards{grid-template-columns:1fr;}.topbar .asof{margin-left:0;}}
+  @media print{
+    body{background:#fff;font-size:10.5px;}
+    .topbar{position:static;}
+    .card,.note,table{break-inside:avoid;}
+    .cards{gap:10px;}
+    .vintage{background:#fff;}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="inner">
+    <h1>Global Macro Intelligence Report</h1>
+    <span class="desk">Buy-Side L/S Desk · Geopolitical Trajectory · Daily Update</span>
+    <span class="asof">AS OF 2026-11-26 07:00 KST · 레벨은 11/25 미국·유럽 종가 및 11/25 아시아 종가 기준 · 美 11/26 휴장</span>
+  </div>
+  <div class="legend">
+    <span><b>신뢰도</b></span>
+    <span><span class="tag t-f">F</span> 검증가능 사실</span>
+    <span><span class="tag t-m">M</span> 시장 해석/컨센서스</span>
+    <span><span class="tag t-v">V</span> 전략가 추론/가정</span>
+    <span><span class="tag t-verify">⚠ verify</span> 단말 라이브 확인 필요</span>
+    <span><span class="tag t-pc">post-cutoff</span> 모델 컷오프 이후, 라이브 조회 기반</span>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="vintage">
+    <b>Data Vintage / Methodology.</b> 일일 갱신판(Daily). 판정: 직전판 AS OF 2026-11-25(1일 경과) · 목요일 · 블로터 N1~N8 반증조건 미도달 · 11/25 USTR Section 301 "과잉생산" 관세 제안(中 20% 등 14개국)은 미중(우선순위 5)·동북아 섹션 내 에스컬레이션이나 中 세율이 Busan 휴전 상한(20%) 안이고 발효는 빨라야 2027-01 → 지배적 리스크 교체 아님으로 판단 <span class="tag t-v">V</span> · 아시아 칩 급락(KOSPI -6.16%)은 이틀 연속 ±6%대 왕복으로 방향 레짐 변화가 아닌 변동성 레짐 · 중앙은행 서프라이즈 없음 → 논지·블로터 구조 유지. <b>11/30(월) 전면 개정에서 미중 우선순위 상향 여부를 재평가한다.</b>
+    조사 구간 2026-11-25 07:00 ~ 11-26 07:00 KST. 사건 대부분 <span class="tag t-pc">post-cutoff</span>. 레벨은 Yahoo Finance(종가 위젯)·247wallst·Longbridge(Wallstreetcn, NY 마감 금리)·Rigzone(Bloomberg 전재)·Korea JoongAng Daily·Seoul Economic Daily·TradingKey·Focus Taiwan(CNA)·StockAnalysis 등 웹 교차. TradingView는 쿨다운으로 미사용, CNBC·Investrade·Morningstar·FXStreet 조회 실패 → FX(USD/JPY·DXY·CNH·TWD) 종가 다수 미확보. <b>실행 전 모든 가격/레벨/포지셔닝은 단말에서 재확인(⚠ verify).</b>
+  </div>
+
+  <!-- ============ 0. ERRATA ============ -->
+  <section>
+    <h2 class="sec">Errata <span class="n">11-25판 사실관계 교정</span><span class="hint">§5-4 직전판 전제 반증 결과 · 11-25판 Errata 2건은 archive/2026-11-25.html · 11-24판 2건은 archive/2026-11-24.html · 06-26판 6건은 archive/2026-11-23.html</span></h2>
+    <div class="errata">
+      <ul>
+        <li><b>NVDA 11/24 "약 -7.4%(~$152.8)"는 장중값이었다.</b> 종가는 <b>-5.86%</b>(KJD·TradingKey) <span class="tag t-m">M</span>. Yahoo 11/25 종가 $149.30(-$6.08)에서 역산한 11/24 종가 $155.38은 11/23 $165.05 × (1-5.86%)와 정확히 일치 → <b>11/23 종가 $165.05로 확정, $164.50(247wallst)은 폐기</b>. 같은 역산으로 11/24 S&amp;P 7,201.09(-0.50%, 11-25판 7,201.69)·Dow 50,018.70(11-25판 50,021)·Nasdaq 23,733.5로 교정.</li>
+        <li><b>11/24 SOX "종가 미확보" → -7.88%</b>(KJD·TradingKey), Micron -11.0%·AMD -8.86% <span class="tag t-m">M</span>. 11-25판이 N5를 "두 레그 모두 유리"로 적었으나 실제 SOX 낙폭(-7.9%)은 11/24 SK하이닉스 상승(+6.7%) 이후 11/25 KRX에서 그대로 전이됐다(아래 Scorecard) → "시차 손실 해소" 판정은 하루짜리였다.</li>
+        <li><b>12/1-2 美 하원 Huang 면담</b>: Seoul Economic Daily는 <b>12/3 의회 청문회</b>로 보도 → 일정은 12/1-3 밴드로 교정, 체크리스트 유지 ⚠ verify.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============ 1. PRIOR BOOK SCORECARD ============ -->
+  <section>
+    <h2 class="sec">Prior Book Scorecard <span class="n">(A) 현 북 N1~N8 일일 추적 · (B) 06-26판 T1~T8 확정 채점</span><span class="hint">entry ref = 11-23판 기재값 · 현재 = 11/25 종가</span></h2>
+    <div class="tblwrap">
+    <table>
+      <thead><tr><th>Trade</th><th>Entry ref (11-23)</th><th>현재 레벨 (11/25 종가)</th><th>Invalidation까지 거리</th><th>상태 · 다음 행동</th></tr></thead>
+      <tbody>
+        <tr><td><span class="idtag">N1</span> SOFR Sep27 receiver</td><td class="num">2y 4.63-4.71%</td><td class="num">2y 4.637% (-4.55bp) · Dec +25bp 98% (CME, Yahoo 인용) · Jan 미확보</td><td class="num">2y 5.00%까지 ~36bp</td><td><span class="res flat">ON · 소폭 유리</span> 10월 core PCE 3.3% y/y(예상 3.2%, 9월 3.1%)·0.3% m/m 3개월 연속 <span class="tag t-m">M</span>(StockAnalysis·Yahoo)으로 <b>인플레는 뜨거웠는데 앞단은 하락</b>: 주식 변동성·USTR 관세 → 성장 하방 헤지 수요 <span class="tag t-v">V</span>. 12월 인상은 사실상 확정, N1이 페이드하는 것은 1월 이후 경로. Beige Book "sustained cost pressures" <span class="tag t-m">M</span>. 사이즈 유지. ⚠ verify</td></tr>
+        <tr><td><span class="idtag">N2</span> OAT-Bund 잔여 1/3</td><td class="num">145-155bp</td><td class="num">11/24·11/25 데이터 미확보 · 최종 확인값 153.1bp (11/23)</td><td class="num">120bp까지 ~33bp (11/23 기준)</td><td><span class="res flat">ON · 판정 보류</span> 11/26 PLFSS 합동위(CMP) 오늘. USTR 관세 대상에 EU 포함(상한 15%) → 유럽 성장 하방이나 OAT 고유 요인은 아님. 라이브 확인 필요. ⚠ verify</td></tr>
+        <tr><td><span class="idtag">N3</span> Brent Feb27 105/125 C + Jun27 80/65 P</td><td class="num">Brent $92.4</td><td class="num">Brent $94.61 (+3.5%) · WTI $83.68 (+2%) (Bloomberg via Rigzone)</td><td class="num">콜레그: 합의 서명 X · 통항 &gt;600척 X / 풋레그: 공습 재개 X · &gt;$110 X</td><td><span class="res flat">ON · 콜레그 쪽 이동</span> 사우디 "Ras Tanura 겨냥 드론 4기 요격"(사우디 발표, 피해·배후 미확인) · IRGC "비인가 항로 컨테이너선 기뢰 피격" 주장(독립 확인 없음) · Houthi 리야드 금융지구 공격(주간 2번째) <span class="tag t-m">M</span>. 반면 EIA 원유 재고 +1.1mb, StanChart "정상화는 대부분 가격에 반영". 1주 고점이나 반증 미도달. ⚠ verify</td></tr>
+        <tr><td><span class="idtag">N4</span> USD/JPY Mar27 155/147 P</td><td class="num">158.6-158.9</td><td class="num">11/25 종가 미확보 · "160 아래 유지"(FXStreet 헤드라인·Finwire) → 159-160 밴드 추정</td><td class="num">165까지 ~3.1-3.8%</td><td><span class="res flat">ON · 보합</span> 9/1 이후 160 위 일간 종가 없음, 11/13 고점 160.20(Finwire) <span class="tag t-m">M</span>. 美 금리 하락(10y -8bp)에도 엔 강세 미미. Fed·BOJ 모두 12월 인상 경로. 도쿄 CPI가 美 휴일에 발표(FXStreet 헤드라인, 일자 ⚠ verify). ⚠ verify</td></tr>
+        <tr><td><span class="idtag">N5</span> SK하이닉스 vs SMH</td><td class="num">₩1,113,000 / SMH $400.06</td><td class="num">₩1,030,000 (-11.05%, entry比 -7.5%) / SMH 종가 미확보 (SOX 11/24 -7.88%, 11/25 장중 -6%+)</td><td class="num">반증(반도체 수출 MoM 감소·DRAM 계약가 하락) 미도달</td><td><span class="res flat">ON · P&amp;L 판정 불가</span> 롱레그 -7.5% vs 숏레그 추정 -10%대(SOX 2일 누적) → 페어 대략 보합 추정 <span class="tag t-v">V</span> ⚠ verify. <b>테제 위협 신호</b>: BNP, Micron 중립 하향·목표가 $1,700→$775, "2027 중반 메모리 수급 균형 → 가격 하락" <span class="tag t-m">M</span>. 외인 KOSPI -₩1.95tn(하이닉스 -₩559.6bn), 대만 공매도 규제로 숏 수요가 한국으로 이동(KJD) <span class="tag t-m">M</span> → 크라우디드 0.5x 유지가 맞았다. 12/1 11월 수출이 판정. DRAM 계약가 체크 강화.</td></tr>
+        <tr><td><span class="idtag">N6</span> UST 5s30s 스티프너</td><td class="num">30y 5.31-5.34% · 5y 미확보</td><td class="num">5y 데이터 미확보 · 30y 5.240% (-8.06bp)</td><td class="num">entry 잠정 ~56bp → 반증선 ~36bp · 산출 불가</td><td><span class="res loss">ON · 소폭 불리</span> 2y -4.55bp / 30y -8.06bp, 2s10s 21.05bp(-3.0bp, Longbridge) → 불리시 플래트닝 <span class="tag t-m">M</span>. 안전자산 수요가 장기물에 먼저 유입. 5y 미확보로 반증 거리 산출 불가. ⚠ verify</td></tr>
+        <tr><td><span class="idtag">N7</span> USD/CNH Mar27 6.80/7.00 C</td><td class="num">6.64-6.67</td><td class="num">CNY/CNH 현물·11/25 픽싱 미확보</td><td class="num">6.55까지 (현물 미확보) · 3조건 중 0 충족</td><td><span class="res flat">ON · 테제 강화</span> <b>USTR Section 301 과잉생산 관세 中 20% 제안</b>(조사상 40% "정당" 판정, 휴전 미이행 시 40% 가능, InvestmentNews·Yahoo) <span class="tag t-f">F</span>(복수 보도). 단 휴전 상한 20% 이내·Board of Trade $30bn 품목 면제·발효 빨라야 1월 → 1/10 만기 협상의 레버리지 <span class="tag t-v">V</span>. 中 외교부 "과잉생산은 존재하지 않는다". 유지. ⚠ verify</td></tr>
+        <tr><td><span class="idtag">N8</span> USD/TWD Feb27 C</td><td class="num">32.94 (11/19)</td><td class="num">USD/TWD "급등 마감"(CNA 헤드라인, 레벨 미확보) · TAIEX 38,195.43 (-4.80%)</td><td class="num">시간 반증(2027-01 말) 잔여 ~2개월</td><td><span class="res flat">ON · 유리 방향</span> 대만도 USTR 관세 대상(상한 15%) · 장중 -3,440pt(역대 2번째 포인트 낙폭) <span class="tag t-m">M</span>. PLA·무기판매 신규 뉴스 없음. TWD 레벨 확인 필요. ⚠ verify</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p class="smallnote">(A) 반증조건 도달 0건. 근접 순: N2(11/23 기준 ~33bp, 최신값 미확보) · N1(~36bp, 전일比 멀어짐) · N7(현물 미확보, 관세로 반증 경로 후퇴). 주의: N5는 테제 반증조건(수출·DRAM 계약가)은 미도달이나 셀사이드 하향(BNP)이 시작됐고, N6은 불리시 플래트닝으로 소폭 불리. 아래 (B)는 11-23 전면 개정판 확정 채점으로 다음 전면 개정 전까지 고정.</p>
+    <div class="tblwrap">
+    <table>
+      <thead><tr><th>Trade</th><th>Entry ref</th><th>현재 레벨</th><th>결과</th><th>사후 판단 · 다음 행동</th></tr></thead>
+      <tbody>
+        <tr><td><span class="idtag">T1</span> Brent Sep26/Dec26 콜스프레드</td><td class="num">$74-80</td><td class="num">고점 $117.64 (Dec선물 10/30 정산) · 현재 $92.4-92.6</td><td><span class="res paid">PAID</span></td>
+          <td>MoU 7월 붕괴 · 미 봉쇄 재개(7/12-14)로 토픽사이드 컨벡시티 페이오프. Dec26 계약은 10/30 고점 정산 부근 만기. 가설(60일 이행 취약)은 적중. OVX ~50으로 변동성은 더 이상 싸지 않음 → 순수 롱콜 재장전 대신 양방향 구조 <b>N3</b>로 교정.</td></tr>
+        <tr><td><span class="idtag">T3</span> OAT-Bund 10y 와이드너</td><td class="num">~69bp</td><td class="num">145-155bp (11/12-18)</td><td><span class="res paid">PAID</span></td>
+          <td>+~80bp. 사이징 기준(30bp ≈ NAV 0.6-1.0%) 환산 약 NAV 1.6-2.7% <span class="tag t-v">V</span>. 9/18 100bp, 10/2 150bp 돌파, OAT가 BTP보다 높게 거래. 2/3 익절, 잔여 1/3을 <b>N2</b>로 승계하고 반증선을 120bp로 상향.</td></tr>
+        <tr><td><span class="idtag">T2</span> USD/JPY 풋스프레드 155/148 (6m)</td><td class="num">~160</td><td class="num">158.6-158.9</td><td><span class="res loss">LOSS (세타)</span></td>
+          <td>7/30 ~164 저점(엔) → 공동개입 후 8/3 155.20 터치, 이후 재상승. 반증(&gt;166 지속) 미도달. 방향은 맞았으나 만기 내 지속성 부족. 12월 만기분은 정리, BOJ 12/18 이후 만기로 <b>N4</b> 재설정.</td></tr>
+        <tr><td><span class="idtag">T4</span> USD/CNH 콜스프레드 7.05/7.30</td><td class="num">~6.81</td><td class="num">6.64-6.67</td><td><span class="res loss">LOSS</span></td>
+          <td>반증조건 절반 도달(USD/CNH &lt;6.72 지속 <b>O</b>, 포괄합의 서명 <b>X</b>). 위안은 2022-06 이후 최강. 전제(8월 유예 만료)가 애초에 오류. 청산. 1/10 휴전 만기용 저스트라이크 <b>N7</b>로 축소 재편.</td></tr>
+        <tr><td><span class="idtag">T5</span> 반도체 디커플링 RV</td><td class="num">데이터 미확보</td><td class="num">SK하이닉스 ₩1,113,000 (10월초比 -39%) · SOX 8,408.6 · HS Tech 3,511</td><td><span class="res loss">LOSS (추정) ⚠ verify</span></td>
+          <td>테제(디커플링)는 강화(NVIDIA 중국 DC 매출 가이던스 0, 원격접근 규정)됐으나 롱레그가 AI 밸류에이션 언와인드에 직격. 숏레그(HS Tech 8연속 하락)가 일부 상쇄. 반증(Blackwell 대중 허용) 미도달. 06-26 entry 레벨 미기재 → P&amp;L 산출 불가. <b>N5</b>로 재구성.</td></tr>
+        <tr><td><span class="idtag">T6</span> EU 방산 vs Euro Stoxx 50 (0.5x)</td><td class="num">RHM ~€900 (6/25)</td><td class="num">RHM €772.60 (11/12) · SX5E 5,942-6,124</td><td><span class="res loss">LOSS</span></td>
+          <td>롱레그 -14%. 원인은 평화가 아니라 기업 고유 요인(F126 프로그램 종료, 2026 매출 가이던스 ~€13.2bn 재하향) <span class="tag t-f">F</span>. 헤지레그 6/26 레벨 미기재. 0.5x 상한이 손실을 절반으로 제한. 청산, 재진입 보류.</td></tr>
+        <tr><td><span class="idtag">T7</span> Gold 콜스프레드 4200/4600</td><td class="num">~$4,040</td><td class="num">$3,515-3,626 (YTD -16%)</td><td><span class="res loss">LOSS</span></td>
+          <td>반증조건 절반 도달(10y 실질 2.88% &gt;2.5% <b>O</b>, DXY 103.6 &gt;106 <b>X</b>). 골드가 헤지가 아니라 유동성 매도 대상이 됨. 청산. 실질금리 &lt;2.5% 전 재진입 없음.</td></tr>
+        <tr><td><span class="idtag">T8</span> UST 2s10s 스티프너</td><td class="num">데이터 미확보</td><td class="num">2s10s +24~+30bp (11/20)</td><td><span class="res flat">판정 불가 ⚠ verify</span></td>
+          <td>06-26 기울기 미기재. 10y는 4.39-4.49 → 4.92-4.95%(+~50bp), 2y 6/26 레벨 미확보. 반증(20bp+ 플래트닝) 도달 여부 단말 확인 필요. 의도(T1 헤지)는 유지할 가치 있음 → <b>N6</b>(5s30s)로 재표현.</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p class="smallnote">교훈: (1) 맞힌 두 거래(T1·T3)는 모두 "시장이 해소됐다고 본 리스크의 컨벡시티"였다. (2) 진입 레벨을 기록하지 않은 RV(T5·T6·T8)는 채점이 불가능했다 → 이번 판부터 모든 레그에 entry ref 기재. (3) 06-26판 손실 거래 중 2건(T4, 부분적으로 T5)은 리서치가 아니라 캘린더·사실 검증 실패에서 출발했다.</p>
+  </section>
+
+  <!-- ============ 2. TRADE BLOTTER ============ -->
+  <section>
+    <h2 class="sec">Trade Blotter <span class="n">conviction 내림차순</span>
+      <span class="hint">defined-risk 옵션/스프레드 중심 · 북 전체는 long-vol, low-gross, delta≈flat</span></h2>
+    <div class="tblwrap">
+    <table class="blotter">
+      <thead>
+        <tr><th>Idea</th><th>Direction / Instrument</th><th class="num">Conv</th><th>Horizon</th><th>Invalidation (반증조건, 청산)</th><th>Sizing</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="idtag">N1</span> Fed 과잉긴축 → 2027 되돌림 <span class="badge-new">NEW</span></td>
+          <td><span class="dir long">LONG front-end</span> SOFR Sep27 콜스프레드(receiver). 2027-09까지 &gt;80bp 추가 인상 프라이싱 <span class="tag t-m">M</span>을 페이드. entry ref: ZQZ26 95.955 · 2y 4.63-4.71% ⚠ verify</td>
+          <td class="num">4 <span class="convbar"><i style="width:80%"></i></span></td>
+          <td>3-9개월</td>
+          <td class="inval">2y &gt;5.00% 종가 2주 지속 <b>또는</b> 12/9 SEP 중앙값이 2027년 2회+ 추가인상 + 11월 core CPI ≥0.4% m/m</td>
+          <td>프리미엄 15-25 NAV bps</td>
+        </tr>
+        <tr>
+          <td><span class="idtag">N2</span> 프랑스 재정 스트레스 잔여 <span class="lin">← T3 승계(1/3)</span></td>
+          <td><span class="dir rv">RV</span> Pay France 10y / Receive Germany 10y (DV01 중립) 잔여분. entry ref 145-155bp ⚠ verify. 12/17 예산 데드라인 통과 시 재평가</td>
+          <td class="num">3.5 <span class="convbar"><i style="width:70%"></i></span></td>
+          <td>1-3개월</td>
+          <td class="inval">OAT-Bund &lt;120bp (예산 표결 통과 + 신용등급 전망 안정)</td>
+          <td>원 DV01의 1/3 · 30bp ≈ NAV 0.2-0.33%</td>
+        </tr>
+        <tr>
+          <td><span class="idtag">N3</span> Hormuz 바이너리 양방향 <span class="lin">← T1 교정</span></td>
+          <td><span class="dir rv">RV / 2-way vol</span> LONG Brent Feb27 $105/$125 콜스프레드 (재공습 꼬리) + LONG Brent Jun27 $80/$65 풋스프레드 (합의 + 2027 공급과잉). entry ref Brent $92.4 · OVX ~50 ⚠ verify</td>
+          <td class="num">3.5 <span class="convbar"><i style="width:70%"></i></span></td>
+          <td>2-7개월</td>
+          <td class="inval">콜레그: Qatar 중재 합의 서명 + Hormuz 주간 통항 &gt;600척 회복. 풋레그: 美·이스라엘 대이란 공습 재개 + Brent &gt;$110 2주 지속</td>
+          <td>합산 프리미엄 15-20 bps</td>
+        </tr>
+        <tr>
+          <td><span class="idtag">N4</span> JPY 컨벡시티 (BOJ 12/18 + 160 방어선) <span class="lin">← T2 교정</span></td>
+          <td><span class="dir long">LONG JPY</span> USD/JPY Mar27 풋스프레드 155/147. entry ref 158.6-158.9 ⚠ verify</td>
+          <td class="num">3.5 <span class="convbar"><i style="width:68%"></i></span></td>
+          <td>3-4개월</td>
+          <td class="inval">USD/JPY &gt;165 지속 (7월 고점 ~164를 개입에도 돌파 = 개입 신뢰 상실)</td>
+          <td>프리미엄 10-15 NAV bps</td>
+        </tr>
+        <tr>
+          <td><span class="idtag">N5</span> 메모리 실적 vs AI 밸류에이션 괴리 <span class="lin">← T5 교정</span></td>
+          <td><span class="dir rv">RV</span> LONG SK하이닉스(000660.KS) vs SHORT SMH (beta-hedged, gross-neutral). 근거: 10월 한국 반도체 수출 $56.4bn(+259% y/y) <span class="tag t-f">F</span> vs 피크比 -39%. entry ref ₩1,113,000 / SMH $400.06</td>
+          <td class="num">3 <span class="convbar"><i style="width:60%"></i></span></td>
+          <td>3-6개월</td>
+          <td class="inval">한국 반도체 수출 2개월 연속 MoM 감소 <b>또는</b> DRAM 계약가 QoQ 하락 전환</td>
+          <td>크라우디드(외인 숏) → 0.5x, gross 0.5-0.75x</td>
+        </tr>
+        <tr>
+          <td><span class="idtag">N6</span> 텀프리미엄 스티프너 <span class="lin">← T8 교정</span></td>
+          <td><span class="dir rv">RV</span> UST 5s30s 스티프너 (DV01 중립, 옵션화: 30y payer / 5y receiver). entry ref 30y 5.31-5.34% · 5y 데이터 미확보 ⚠ verify</td>
+          <td class="num">2.5 <span class="convbar"><i style="width:50%"></i></span></td>
+          <td>3-6개월</td>
+          <td class="inval">5s30s 20bp+ 플래트닝 (Fed 인상이 장기 기대인플레 억제로 신뢰 회복)</td>
+          <td>DV01-light</td>
+        </tr>
+        <tr>
+          <td><span class="idtag">N7</span> 미중 1/10 휴전 만기 옵셔널리티 <span class="lin">← T4 교정</span></td>
+          <td><span class="dir long">LONG USD/CNH</span> Mar27 콜스프레드 6.80/7.00. entry ref 6.64-6.67 ⚠ verify</td>
+          <td class="num">2.5 <span class="convbar"><i style="width:48%"></i></span></td>
+          <td>2-4개월</td>
+          <td class="inval">Board of Trade $30bn 상호관세 인하 합의 + 휴전 2027-01-10 이후 연장 + USD/CNH &lt;6.55</td>
+          <td>프리미엄 5-8 NAV bps</td>
+        </tr>
+        <tr>
+          <td><span class="idtag">N8</span> 대만 11-12월 성수기 테일 <span class="badge-new">NEW</span></td>
+          <td><span class="dir long">LONG USD/TWD</span> Feb27 콜스프레드 (spot +3% / +7%). entry ref 32.94 (11/19) ⚠ verify</td>
+          <td class="num">2 <span class="convbar"><i style="width:40%"></i></span></td>
+          <td>~3개월</td>
+          <td class="inval">2027-01 말까지 대규모 PLA 훈련 부재 + 美 대만 무기판매 공식 통보 재개 없이 긴장 완화</td>
+          <td>프리미엄 5-8 NAV bps</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+    <p class="smallnote">청산: T1·T3(2/3) 익절, T2·T4·T6·T7 청산, T5·T8 재구성. 상관 클러스터 합산 상한: risk-off/USD 축(N4+N7+N8) 프리미엄 ≤35 bps. 모든 옵션 만기는 Hard Catalyst Calendar의 관련 날짜(12/9 FOMC · 12/18 BOJ · 2027-01-10 휴전 만기) 이후.</p>
+  </section>
+
+  <!-- ============ 3. EXECUTIVE SUMMARY ============ -->
+  <section>
+    <h2 class="sec">Executive Summary <span class="n">Manager's Note</span></h2>
+    <div class="note">
+      <div class="today"><b>오늘의 변화 (11-26).</b> (1) <b>USTR, Section 301 "구조적 과잉생산" 관세 제안</b>: 中 20%(조사상 40% "정당")·EU·日·韓·臺 등 14개국, 발효 빨라야 2027-01, 반도체·자동차·철강 제외 보도(Yahoo) <span class="tag t-f">F</span>(복수 보도, 연방관보 원문 ⚠ verify). 中 세율은 Busan 휴전 상한 안 → 1/10 만기 협상 레버리지로 읽는다 <span class="tag t-v">V</span>. N7 테제 강화. (2) <b>10월 core PCE 3.3%(예상 3.2%)인데 2y -4.6bp(4.637%)·10y -8.4bp(4.846%)·30y -8.1bp</b> <span class="tag t-m">M</span>(Longbridge): 인플레 서프라이즈보다 성장·관세 하방 헤지가 이겼다 → N1 유리, N6 불리(불리시 플래트닝). 12월 인상 98%. (3) <b>아시아 칩 하루 만에 재급락</b>: KOSPI -6.16%(4,697.51, 1/13 이후 최저 종가)·SK하이닉스 -11.05%(₩1,030,000)·삼성전자 -9.87%·TAIEX -4.80%(38,195)·Nikkei -2.78% <span class="tag t-m">M</span>, BNP의 Micron 하향("2027 중반 메모리 수급 균형")이 메모리 피크 논쟁을 재점화. Brent +3.5% $94.61(Ras Tanura 드론 요격). 반증조건 도달 트레이드 없음.</div>
+      <ol>
+        <li><span class="lead">지배적 리스크 교체: 인플레 레짐에서 정책 오류 레짐으로.</span> Warsh Fed는 9/16 3.75-4.00%로 인상 <span class="tag t-f">F</span>, 10월 의사록은 "almost all"이 추가 인상 적절 <span class="tag t-f">F</span>. 동시에 AI 주식이 급락(Nasdaq YTD 마이너스, SOX 하루 -10.7%) <span class="tag t-m">M</span>. 시장은 12월 인상 + 2027-09까지 80bp+를 가격에 반영 <span class="tag t-m">M</span>. 주식 조정·Democrats 의회(재정 억제)·실질성장 둔화가 겹친 상태에서 이 경로는 지속되기 어렵다고 본다 → <b>N1</b>(front-end receiver) <span class="tag t-v">V</span>.</li>
+        <li><span class="lead">06-26판 채점: 컨벡시티 2승, 방향성 5패.</span> T1(Brent)·T3(OAT-Bund)는 "해소됐다고 믿은 리스크"를 산 거래로 대형 PAID. 손실은 대부분 세타·캘린더 오류에서 나왔다. 미중 섹션은 2025년 사건을 2026년으로 오기했다(Errata) <span class="tag t-f">F</span>.</li>
+        <li><span class="lead">중동은 "끝난 전쟁"이 아니라 "얼어붙은 봉쇄".</span> Hormuz 주간 통항 263척(평시比 ~-65%, UKMTO) <span class="tag t-f">F</span>, 10월 선박 공격 32건 최다 <span class="tag t-f">F</span>. EIA는 연말까지 Brent ~$100, IEA는 2027년 3.8mb/d 공급과잉 <span class="tag t-m">M</span>. 결과가 양쪽 끝(합의 또는 재공습)에 몰린 바이너리 → 방향이 아니라 양방향 구조 <b>N3</b> <span class="tag t-v">V</span>.</li>
+        <li><span class="lead">유럽 재정 스트레스가 프랑스에서 현실화.</span> OAT-Bund 145-155bp, OAT가 BTP를 상회 <span class="tag t-f">F</span>, Moody's·Fitch 모두 부정적 전망 <span class="tag t-f">F</span>. 12/17 예산 데드라인·ECB 12/17 인상(~91%) <span class="tag t-m">M</span>이 같은 날. 대부분 익절하고 잔여만 보유(<b>N2</b>). 지금은 비대칭이 아니라 이미 프라이싱된 구간 <span class="tag t-v">V</span>.</li>
+        <li><span class="lead">아시아: 실적과 가격의 최대 괴리.</span> 한국 10월 반도체 수출 +259% y/y <span class="tag t-f">F</span>인데 SK하이닉스 -39%, KOSPI 피크比 약 -50% ⚠ verify. 엔은 BOJ 1.25% + 사상 최대 개입(¥15.4tn) <span class="tag t-f">F</span>에도 ~159. BOJ 12/18 인상과 160 방어선이 비대칭을 만든다 → <b>N4</b>, 괴리는 <b>N5</b>(0.5x) <span class="tag t-v">V</span>.</li>
+        <li><span class="lead">북 구성.</span> long-vol·low-gross·delta≈flat 유지. 단 VIX 27(11/20 36)·OVX ~50에서 아웃라이트 롱볼은 여전히 싸지 않으므로 스프레드·캘린더·RV로 표현. 상관 클러스터: (a) Fed 피벗 축 N1+N6, DV01 합산 상한 NAV 1.0%/50bp; (b) risk-off/USD 축 N4+N7+N8 프리미엄 ≤35bps; (c) 유가 축 N3은 콜·풋 내장 헤지. 총 옵션 세타예산 ~55-80 bps/분기, T1·T3 실현이익과 N5 RV로 상쇄. N2는 캐리 음(-) 소폭. 합산 gross 상한 2.0x.</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ============ 4. SECTION CARDS ============ -->
+  <section>
+    <h2 class="sec">Section Cards <span class="n">우선순위 1-5 (재평가)</span><span class="hint">각 카드 = 7단계(Temporal · Transmission · Pricing+Variant · Scenarios · Trades · Fit · Triggers) + Cross-Asset</span></h2>
+    <div class="cards">
+
+      <!-- CARD 1 US -->
+      <div class="card">
+        <div class="head"><div class="k">Priority 1 · 신규 1위</div>
+          <div class="t">미국 통화·재정 / Policy Error Risk <small>(Fed 인상 사이클 · AI 주식 언와인드 · 텀프리미엄)</small></div></div>
+        <div class="body">
+          <div class="blk"><div class="lbl">1 · Temporal Evolution</div>
+            <ul>
+              <li>2026-02-20 대법원 IEEPA 관세 위법(6-3). Sec.122 10%(2/24~7/24 만료) → 7/24 Sec.301 "forced labor" 10-12.5%(60개국) <span class="tag t-f">F</span> <span class="tag t-pc">post-cutoff</span></li>
+              <li>05-22 Warsh 의장 취임(상원 54-45). Powell은 이사로 잔류 <span class="tag t-f">F</span></li>
+              <li>07-29 동결 3.50-3.75%(9-3, 3명 인상 소수의견) · 09-16 <b>인상 3.75-4.00%</b>(12-0) · 10-28 동결(10-2) <span class="tag t-f">F</span></li>
+              <li>9월 SEP 중앙값 2026·2027 4.125%(1회 추가 후 동결), 2026 PCE 3.7% <span class="tag t-m">M</span>(2차 출처) ⚠ verify</li>
+              <li>9월 PCE 3.6% y/y, core 3.1% (10/29 BEA) · 10월 CPI +0.4% m/m, core +0.3% (11/10 BLS, 2025 셧다운으로 y/y 미발표) · 10월 NFP +165k, 실업률 4.1% (11/6) <span class="tag t-f">F</span></li>
+              <li>11-03 중간선거 Democrats 양원 장악, 1/4 신의회 출범 · CR(H.R.6500) 12/11까지 <span class="tag t-f">F</span></li>
+              <li>FY2026 적자 $2.0T(GDP 6.2%, CBO 11/9) · 11/4 QRA $125bn, 쿠폰 "several quarters" 동결 <span class="tag t-f">F</span></li>
+              <li>11-16~20 AI 반도체 급락: S&amp;P -8.6% w/w, NVDA 11/20 -14% (11-12 Huang 사임 여파) <span class="tag t-m">M</span> ⚠ verify</li>
+              <li>11-23 NVIDIA 이사회 Huang 복귀(만장일치, 8-K) <span class="tag t-f">F</span> → S&amp;P +4.73%, Nasdaq +6.51%, VIX 27.1 <span class="tag t-m">M</span>. 같은 날 Williams: "inflation is simply too high", 물가 리스크 "dialed up" (NY Fed 원문) <span class="tag t-f">F</span>. 12-01~02 하원 Huang·법무총괄 면담 예정 <span class="tag t-m">M</span></li>
+              <li>11-24 되돌림: NVDA 약 -7.4%, 칩 시총 ~$870bn 증발(단일 집계·장중) · Nasdaq -1.48%, Dow +0.86% 50,021 <span class="tag t-m">M</span> ⚠ verify · 11월 Conference Board 소비자신뢰 103.3(예상 92.5, 10월 91.9) · Richmond Fed 제조업 +3 <span class="tag t-m">M</span>(2차 출처) · FedWatch Dec +25bp ~95%, Jan 추가 69% <span class="tag t-m">M</span></li>
+              <li>11-25 10월 PCE 3.8% y/y(9월 3.6%)·0.3% m/m, <b>core 3.3% y/y(예상 3.2%)</b>·0.3% m/m, 개인소득 +0.7%(일회성 Medicare 환급 포함), 실질소비 보합 <span class="tag t-m">M</span>(StockAnalysis, BEA 원문 ⚠ verify) · Q3 GDP 수정치 데이터 미확보(Yahoo 요약 "4.3%"는 단일·요약값, 속보 3.4%) ⚠ verify · Beige Book "sustained cost pressures", 가격 압력 확산 <span class="tag t-m">M</span> · <b>USTR Section 301 과잉생산 관세 제안(14개국, 中 20%)</b> <span class="tag t-f">F</span> · 금리 하락: 2y 4.637%(-4.55bp)·10y 4.846%(-8.36bp)·30y 5.240%(-8.06bp)·10y TIPS 2.723%(-7.7bp) (Longbridge) · S&amp;P 7,182.78(-0.25%)·Nasdaq 23,585.80(-0.62%)·Dow 50,182.95(+0.33%) (Yahoo 종가 위젯, 247wallst 7,183-7,193 충돌) · NVDA $149.30(-3.91%) · VIX 28.29 <span class="tag t-m">M</span> ⚠ verify</li>
+            </ul>
+          </div>
+          <div class="blk"><div class="lbl">2 · Transmission</div>
+            <p>1차: 유가 충격(휘발유 +37% y/y NSA <span class="tag t-f">F</span>) → 헤드라인 인플레 → Fed 인상. 10y는 10/7 5.36% 고점 <span class="tag t-m">M</span>, 10y TIPS 2.88-2.90%(24년래 최고) <span class="tag t-f">F</span> → 실질금리가 AI 고밸류 듀레이션 자산을 압박. 2차: 주식 급락 → 부의 효과·IG 발행(AI CapEx 차입) 위축 → 성장 하방. Democrats 의회는 재정 억제·전쟁 예산 제한 쪽 <span class="tag t-m">M</span>. 결과: 앞단은 인상 프라이싱, 뒷단은 안전자산 수요와 텀프리미엄이 충돌.</p>
+          </div>
+          <div class="blk variant"><div class="lbl">3 · Current Pricing + Variant View</div>
+            <p><b>컨센서스</b> <span class="tag t-m">M</span>: 12/9 +25bp 95.7%(CME, 11/19), 1월 추가 + 2027 1회. Waller는 12월 50bp 가능성 언급. MS 2027말 10y 5%, GS 4.6%.<br>
+            <b>Variant</b> <span class="tag t-v">V</span>: 인플레는 공급(에너지)발이고 core PCE 3.1%는 완만. 주식 조정 + 재정 억제 + 실질금리 2.9%면 Fed는 12월 인상 후 "hawkish stop" 가능성이 높다. 2027-09까지 80bp+는 과잉. <b>괴리를 닫는 촉매</b>: 12/9 SEP 도트 · 11월 CPI · 12/11 CR 만기 · 신용 스프레드 확대.</p>
+          </div>
+          <div class="blk"><div class="lbl">4 · Scenarios</div>
+            <div class="scn">
+              <div class="s base"><div>Base</div><div class="p">50%</div>12월 인상 후 정지. 2y 4.4-4.8%, 주식 변동성 높은 레인지</div>
+              <div class="s bull"><div>Bull</div><div class="p">20%</div>AI 실적 방어·인플레 둔화. 주식 반등, 커브 불스티프</div>
+              <div class="s bear"><div>Bear</div><div class="p">30%</div>인상 지속 + 주식 추가 하락 → 신용 이벤트, 침체 프라이싱</div>
+              <div class="s tail"><div>Tail</div><div class="p">~</div>UST 시장 기능 저하·10y &gt;5.5% 텀프리미엄 스파이크</div>
+            </div>
+          </div>
+          <div class="blk trades-inline"><div class="lbl" style="color:var(--rv-ink)">5 · Trade Expression</div>
+            <code>N1</code> SOFR Sep27 콜스프레드(과잉긴축 페이드) · <code>N6</code> 5s30s 스티프너(텀프리미엄). 주식 아웃라이트 숏은 VIX 36에서 엣지 없음.</div>
+          <div class="blk"><div class="lbl">6 · Portfolio Fit</div>
+            <p>N1·N6은 Fed 피벗에서 동반 이익 → 합산 DV01 상한. N1은 risk-off(N4/N8)와 양(+)상관이나 인플레 재가속 시 N3 콜레그가 일부 헤지.</p></div>
+          <div class="blk trig"><div class="lbl">7 · Monitoring Triggers</div>
+            <ul>
+              <li>If 12/9 SEP 중앙값 2027 추가 2회+ → N1 절반 축소</li>
+              <li>If HY 스프레드 급확대 + 2y &lt;4.4% → N1 일부 익절, N6 사이즈업</li>
+              <li>If 12/11 CR 무연장(셧다운) → 데이터 공백, 앞단 변동성 확대 대비</li>
+            </ul>
+          </div>
+          <div class="cross"><b>Cross-Asset Confirmation:</b> rates(앞단 인상 vs 뒷단 안전자산 랠리) · credit(데이터 미확보) · equity(S&amp;P 11/25 7,183(-0.25%) · Nasdaq -0.62% · 올드이코노미 로테이션) · vol(VIX 28.29, MOVE 미확보) · FX(DXY 미확보, Bloomberg "달러 상승") → <b>부분 충돌 (11-26 갱신)</b>: core PCE 서프라이즈에도 커브 전 구간 하락(10y -8bp) = 시장이 인플레보다 성장·관세 하방을 가격. N1 방향 확인, N6은 역풍.</div>
+        </div>
+      </div>
+
+      <!-- CARD 2 MIDDLE EAST -->
+      <div class="card">
+        <div class="head"><div class="k">Priority 2 · 직전 3위</div>
+          <div class="t">중동 / Energy, Logistics and Inflation <small>(Hormuz · 원유 · LNG · Houthi)</small></div></div>
+        <div class="body">
+          <div class="blk"><div class="lbl">1 · Temporal Evolution</div>
+            <ul>
+              <li>06-17 14개항 "Islamabad Memorandum" 서명(미 봉쇄 30일내 해제·Hormuz 60일 무료통항). 핵·미사일은 이연 <span class="tag t-m">M</span> ⚠ verify</li>
+              <li>07-07~08 이란 상선 공격(카타르 LNG선 포함) → 美 80+ 표적 공습, 트럼프 "MoU over" · 07-12~14 美 봉쇄 재개 · 07-18 이란 이행 중단 <span class="tag t-f">F</span> <span class="tag t-pc">post-cutoff</span></li>
+              <li>07-20~25 Houthi 사우디 항만 선박 금수 선언, Jizan 정유소 피격 · 08-17 MoU 만료, 합의 없음 <span class="tag t-f">F</span></li>
+              <li>10월 UKMTO 선박공격 32건(월 최다) · 10-30 Hormuz 첫 림펫기뢰 · Brent Dec 정산 $117.64 <span class="tag t-f">F</span></li>
+              <li>11-01 OPEC+ 핵심 7개국 12월 목표 동결 (UAE 2026-05 OPEC 탈퇴) · 11-29 장관회의 2027 쿼터 <span class="tag t-f">F</span></li>
+              <li>11-13 IAEA: 고농축우라늄 규모·위치 검증 불가 · 11-13~16, 11-21 IRGC 바레인 미군시설 공격 · 11-22 Araghchi "MoU는 끝, 합의는 가능" <span class="tag t-f">F</span></li>
+              <li>11-21 바레인 산업시설 피격(2명 부상) · UKMTO Khasab 인근 유조선 피격(동일 선박 가능) · 11-22 Houthi Rabigh 정유소 "직접 타격" 주장(사우디 확인 없음) · 11-22 트럼프 Fox 인터뷰 "협상 실패 시 2027 재개", Qatar 중재 채널 지속(Tasnim) · 11-23 Brent Jan $89.37 <span class="tag t-m">M</span> ⚠ verify</li>
+              <li>11-23 IRGC 해군 "위반 유조선 3척 기뢰 피격·화재" 주장(Press TV) vs UKMTO "미확인 발사체 3척, 승조원 무사·항해 지속"(Rallies 인용) vs "신규 공격 없음"(Wisevoter 인용) → 출처 충돌 · 美, 이란의 유조선 최대 50척 사이버공격 관여 조사(WSJ via Reuters) <span class="tag t-m">M</span> ⚠ verify</li>
+              <li>11-23 Vance(백악관)·Rubio(국무부 전략대화) 카타르 총리 면담, 신규 정책 없음 · AP: 트럼프가 Vance에게 "합의 필요 없다", 대규모 작전 재개 필요성도 없다고 언급, 美 해상봉쇄 지속 <span class="tag t-m">M</span> · 11-23 Libya Sharara 파이프라인 재가동(NOC, Reuters) <span class="tag t-f">F</span> · 11-24 Brent $91.40(+2.3%) <span class="tag t-m">M</span></li>
+              <li>11-25 사우디 "Ras Tanura 겨냥 드론 4기 요격"(피해·배후 미확인) · 11-24 Houthi 리야드 금융지구 타격(주간 2번째, 사우디 확인 없음) · IRGC "비인가 항로 컨테이너선 기뢰 피격"(11/24) 주장 · 이란, 봉쇄 해제·제재 해제·동결자산 반환 후 해협 재개 요구(Reuters via GEF), 해법 "요원"(Bloomberg) · EIA 원유 재고 +1.1mb · Brent $94.61(+3.5%, 1주 고점)·WTI $83.68 <span class="tag t-m">M</span> ⚠ verify</li>
+            </ul>
+          </div>
+          <div class="blk"><div class="lbl">2 · Transmission</div>
+            <p>1차: Hormuz 통항 ~-65%(263척/주, UKMTO 11/18) <span class="tag t-f">F</span> → Gulf 수출 평시 75%(Vortexa 10월) vs Kpler 24.6mb/d(출처 충돌, 밴드) ⚠ verify. 2차: LNG(TTF 10월 말 €100+ 4년 최고, 현재 €86.5) → 유럽 HICP 4.0% → ECB 인상. 미국 휘발유 → CPI → Fed. 3차: IEA 비축 71mb 방출(2월 말까지) <span class="tag t-f">F</span>가 프롬프트 상단을 제한.</p>
+          </div>
+          <div class="blk variant"><div class="lbl">3 · Current Pricing + Variant View</div>
+            <p><b>컨센서스</b> <span class="tag t-m">M</span>: 지정학 바닥 vs 2027 공급과잉. EIA 11-12월 ~$100, 2027 $86 · IEA 2027 +3.8mb/d 과잉 · GS 2027 $88 · Enverus "해결보다 확전 가능성".<br>
+            <b>Variant</b> <span class="tag t-v">V</span>: 분포가 쌍봉이다. Democrats 의회의 전쟁 예산 제약 + Qatar 중재 = 합의 경로, CBS 보도 "2-4일 내 공습 옵션" + IRGC 도발 = 확전 경로. 중간값($90대)에 머무를 확률이 시장 생각보다 낮다. 단기 상방 꼬리와 6개월 하방을 분리해 산다. <b>촉매</b>: 11/29 OPEC+ · Qatar 채널 · IAEA 이사회 · 1/4 신의회.</p>
+          </div>
+          <div class="blk"><div class="lbl">4 · Scenarios</div>
+            <div class="scn">
+              <div class="s base"><div>Base</div><div class="p">45%</div>동결된 봉쇄 지속. Brent $85-100, OVX 고원</div>
+              <div class="s bull"><div>Bull</div><div class="p">30%</div>Qatar 중재 합의·통항 회복. Brent &lt;$75, 디스인플레</div>
+              <div class="s bear"><div>Bear</div><div class="p">25%</div>美·이스라엘 재공습. Brent &gt;$110, 인플레 2차파동</div>
+              <div class="s tail"><div>Tail</div><div class="p">~</div>사우디 핵심설비(Abqaiq) 대규모 피해 → Brent $130+</div>
+            </div>
+          </div>
+          <div class="blk trades-inline"><div class="lbl" style="color:var(--rv-ink)">5 · Trade Expression</div>
+            <code>N3</code> Feb27 콜스프레드 + Jun27 풋스프레드. 에너지주 아웃라이트는 이미 로테이션 수혜(11/20) → 추격 금지.</div>
+          <div class="blk"><div class="lbl">6 · Portfolio Fit</div>
+            <p>N3 풋레그는 N1(디스인플레 → Fed 정지)과 양(+)상관, 콜레그는 N1의 헤지. 순 인플레 베타 ≈ 0 목표. ECB·BOE 인상 경로와도 연결.</p></div>
+          <div class="blk trig"><div class="lbl">7 · Monitoring Triggers</div>
+            <ul>
+              <li class="hit">TRIGGERED 2026-07-08 (06-26판 트리거) "정상회담 결렬/IRGC 도발 재개 → T1 사이즈업" · T1 PAID로 종결</li>
+              <li>If Qatar 채널 합의 초안 공개 → N3 콜레그 정리, 풋레그 유지</li>
+              <li>If Hormuz 주간 통항 &lt;200척 또는 사우디 설비 피격 → 콜레그 롤업</li>
+              <li>If 11/29 OPEC+ 2027 증산 합의 → 풋레그 사이즈업</li>
+            </ul>
+          </div>
+          <div class="cross"><b>Cross-Asset Confirmation:</b> rates(인플레 기대 지지) · FX(USD 강세 제한적) · equity(에너지 로테이션) · vol(OVX ~50, 비쌈) · gas(TTF 11-23판 €86.5, 11/25 미확보 · EU 저장 69.8% vs 전년 81.2%) → <b>동일 방향 (11-26 갱신: Brent $94.61, 이틀 +5.9%)</b>: 공급 리스크 상존이나 변동성 가격이 이미 높음 → 스프레드로만.</div>
+        </div>
+      </div>
+
+      <!-- CARD 3 EUROPE -->
+      <div class="card">
+        <div class="head"><div class="k">Priority 3 · 직전 4위</div>
+          <div class="t">유럽 / Fiscal Stress and Stagflation <small>(프랑스 · ECB · 독일 재정 · 우크라이나)</small></div></div>
+        <div class="body">
+          <div class="blk"><div class="lbl">1 · Temporal Evolution</div>
+            <ul>
+              <li>ECB 06-11 인상 DFR 2.25% · 07-23 동결 · <b>09-10 인상 2.50%</b> · 10-29 동결(TPI 언급) <span class="tag t-f">F</span> <span class="tag t-pc">post-cutoff</span></li>
+              <li>10월 유로존 HICP 4.0%(2023년 이후 첫 4%), core 2.5%, 에너지 +20.8% · Q3 GDP +0.4% <span class="tag t-m">M</span> ⚠ verify(Eurostat 원문)</li>
+              <li>OAT-Bund 09-18 100bp 돌파(2012년 이후 처음) → 10-02 145-150bp · OAT 10y 10월 5.1% <span class="tag t-m">M</span></li>
+              <li>Moody's 10-23 Aa3 부정적 유지 · Fitch 10-30 A+ 전망 부정적 하향 <span class="tag t-f">F</span></li>
+              <li>11-04 하원, 2027 예산 세입편 만장일치 부결(적자 ~5.9% 시사) · 11-20 상원 심의 · 12/17 데드라인 <span class="tag t-f">F</span></li>
+              <li>독일 2027 예산 위원회 통과(11-13): 순차입 €122.97bn 중 국방예외 €84.55bn, 국방부 €109.75bn · 본회의 11/27 <span class="tag t-f">F</span></li>
+              <li>11월 중순 Abu Dhabi 美·우·러 협상 재개(포로교환, 휴전 없음) <span class="tag t-f">F</span> · BOE 11-05 4.00% 인상 <span class="tag t-f">F</span></li>
+              <li>11-23 OAT-Bund 153.1bp(-2.3bp, OAT 4.83%·Bund 3.30%, ideal-investisseur 자동 집계) <span class="tag t-m">M</span> · 11-24 Bloomberg "2027 예산: 일정·49.3·오르도낭스" 해설(본문 미확보) ⚠ verify</li>
+              <li>11-25 USTR 과잉생산 관세 제안에 EU 포함(상한 15%, 기존 forced-labor 관세와 비중첩·높은 세율 적용, RTE·InvestmentNews) <span class="tag t-f">F</span> · OAT-Bund 11/24-25 데이터 미확보 ⚠ verify</li>
+            </ul>
+          </div>
+          <div class="blk"><div class="lbl">2 · Transmission</div>
+            <p>1차: 에너지 쇼크 → HICP 4% → ECB 보험성 인상 → 실질 조달비용↑. 2차: 프랑스 성장 -0.1%(Q3) + 예산 마비 → 재정궤적 악화, OAT가 BTP를 상회 <span class="tag t-f">F</span>. 독일은 국방 예외 차입으로 재정 여력 차별화 → 코어/세미코어 분기 심화. EUR/USD 1.097-1.100(19개월 저점권)은 Fed-ECB 금리차 반영 <span class="tag t-m">M</span>.</p>
+          </div>
+          <div class="blk variant"><div class="lbl">3 · Current Pricing + Variant View</div>
+            <p><b>컨센서스</b> <span class="tag t-m">M</span>: ECB 12/17 2.75%로 종결(Reuters poll 46/71), 프랑스는 49.3 또는 오르도낭스로 예산 확보, TPI 적격성 논쟁.<br>
+            <b>Variant</b> <span class="tag t-v">V</span>: 06-26판의 비대칭은 소진됐다. 150bp에서는 상하방이 대칭에 가깝다. 남은 비대칭은 "정부 붕괴 + 2027 대선(Le Pen vs Mélenchon 여론)"이지만 이는 2027 이벤트. 지금은 이익 보호가 우선. <b>촉매</b>: 12/17 예산 데드라인·ECB 동일일 · S&amp;P 리뷰(일정 미확보) · 독일 본회의 11/27.</p>
+          </div>
+          <div class="blk"><div class="lbl">4 · Scenarios</div>
+            <div class="scn">
+              <div class="s base"><div>Base</div><div class="p">50%</div>49.3/오르도낭스로 예산 확보. OAT-Bund 130-160bp</div>
+              <div class="s bull"><div>Bull</div><div class="p">20%</div>표결 통과·등급 안정. 스프레드 &lt;120bp</div>
+              <div class="s bear"><div>Bear</div><div class="p">30%</div>불신임 가결·정부 붕괴. 스프레드 &gt;180bp</div>
+              <div class="s tail"><div>Tail</div><div class="p">~</div>TPI 부적격 판정 + periphery 전이 → 스프레드 갭</div>
+            </div>
+          </div>
+          <div class="blk trades-inline"><div class="lbl" style="color:var(--rv-ink)">5 · Trade Expression</div>
+            <code>N2</code> OAT-Bund 잔여 1/3. 방산(T6) 청산: 평화가 아니라 실행 리스크가 주가를 결정 → 엣지 없음. EUR/USD 아웃라이트 엣지 없음.</div>
+          <div class="blk"><div class="lbl">6 · Portfolio Fit</div>
+            <p>N2는 글로벌 재정/텀프리미엄 테마(N6)와 양(+)상관 → 합산 DV01 관리. 캐리 음(-) 소폭.</p></div>
+          <div class="blk trig"><div class="lbl">7 · Monitoring Triggers</div>
+            <ul>
+              <li class="hit">TRIGGERED 2026-09-18 (06-26판 Bear 기준) OAT-Bund &gt;100bp · T3 PAID</li>
+              <li>If 12/17 전 불신임 가결 → N2 잔여 유지·옵션 추가 검토</li>
+              <li>If 예산 표결 통과 + OAT-Bund &lt;120bp → N2 청산</li>
+              <li>If 러-우 휴전 서명 → 에너지·EUR 리프라이싱, N3 풋레그 수혜</li>
+            </ul>
+          </div>
+          <div class="cross"><b>Cross-Asset Confirmation:</b> rates(Bund 3.30%, OAT 4.83%, OAT-Bund 153.1bp 11/23, BTP-Bund ~109bp) · FX(EUR 약세) · credit(France 5y CDS 데이터 미확보) · equity(SX5E 5,942-6,124) → <b>동일 방향</b>: 프랑스 특이 스트레스, periphery 전이는 아직 제한적.</div>
+        </div>
+      </div>
+
+      <!-- CARD 4 NE ASIA -->
+      <div class="card">
+        <div class="head"><div class="k">Priority 4 · 직전 2위</div>
+          <div class="t">동북아시아 / Yen, AI Supply Chain and Taiwan <small>(BOJ · 한국 메모리 · 대만 · 한일 vs 중국)</small></div></div>
+        <div class="body">
+          <div class="blk"><div class="lbl">1 · Temporal Evolution</div>
+            <ul>
+              <li>BOJ 07-31 동결 1.00% · <b>09-18 인상 1.25%</b>(1995년 이후 최고, 7-2) · 10-30 동결, 기조 인플레 목표 부합 첫 언급, ETF 매각 가속 <span class="tag t-f">F</span> <span class="tag t-pc">post-cutoff</span></li>
+              <li>07-30 ¥7.976tn 단일일 최대 개입(~164) · 07-31 美日 공동개입(MOF 8/3 확인) · 7/30~8/26 누계 ¥15.4tn <span class="tag t-f">F</span></li>
+              <li>10y JGB 09-01 3.005%(1996년 이후 최고) · 30y 입찰 11-10 평균 3.847% <span class="tag t-f">F</span></li>
+              <li>BOK 7월 2.75% · 08-27 3.00% · 10-22 동결 · 11/26 회의(20명 중 18명 3.25% 예상) <span class="tag t-f">F</span></li>
+              <li>한국 10월 수출 $115.3bn(+93.7%), 반도체 $56.4bn(+259%) · 11/1-10 반도체 +331% · <b>11/1-20 수출 $77.4bn(+~102%), 반도체 $38.5bn(~4배, 비중 49.7%)</b> (관세청, 11-23) <span class="tag t-f">F</span></li>
+              <li>대만: 10-15 기준 2026 대규모 PLA 훈련 없음 · 11월초 함정 100척+ 서태평양 활동, 하루 49소티(연중 최고) · ~$14bn 무기판매 패키지 보류 보도 <span class="tag t-m">M</span></li>
+              <li>북한 11-04 다발 미사일(한 달 4번째) · 중일 갈등 1년째, 중국의 대일 이중용도 수출 금지 지속 <span class="tag t-f">F</span></li>
+              <li>11-24 NVIDIA 랠리 지연 반영: KOSPI 5,006.03(+6.32%, 외인 +₩725.6bn·기관 +₩869bn) · SK하이닉스 ₩1,160,000(+6.73%) · 삼성전자 ₩189,400(+6.7%) (Yonhap via JoongAng) · TAIEX 40,122.35(+8.99%, 사상 최대 포인트 상승, 외인 NT$50.4bn 순매도, CNA) · Nikkei 58,645-58,778(+3.9~4.2%, TE 단일) <span class="tag t-m">M</span> ⚠ verify</li>
+              <li>11-25 재급락: KOSPI 4,697.51(-6.16%, 1/13 이후 최저 종가, 매도 사이드카 4거래일 연속)·SK하이닉스 ₩1,030,000(-11.05%, 4/10 이후 최저)·삼성전자 ₩170,700(-9.87%, 시총 ₩1,000tn 하회) · 외인 -₩1.95tn / 개인 +₩1.42tn (KJD·Sedaily) · TAIEX 38,195.43(-4.80%, 장중 -3,440pt) (CNA) · Nikkei 57,011.62(-2.78%), SoftBank -14.8%·Kioxia -14.2% (TradingKey) <span class="tag t-m">M</span> · BNP Micron 중립 하향(목표 $1,700→$775) · 韓·日·臺 USTR 관세 대상(상한 15%) <span class="tag t-f">F</span></li>
+            </ul>
+          </div>
+          <div class="blk"><div class="lbl">2 · Transmission</div>
+            <p>1차: AI 밸류에이션 언와인드 → 한국·대만 지수(반도체 비중)가 미국보다 크게 하락(EWT -10.95%, EWY -8.4% 11/20) <span class="tag t-m">M</span>, 외인 순매도. 2차: 그러나 수출 물량·가격은 사상 최대 → 실적과 가격의 괴리. 캐리: 美 인상으로 금리차는 유지되나 BOJ 정상화·개입 경계로 160이 사실상 천장. 중국의 대일 희토류 제한은 일본 제조업 비용 채널.</p>
+          </div>
+          <div class="blk variant"><div class="lbl">3 · Current Pricing + Variant View</div>
+            <p><b>컨센서스</b> <span class="tag t-m">M</span>: BOJ 12/18 1.50% "heavily favoured"(StoneX), 2027 여름 1.75-2.00%. 한국 메모리는 외인 숏 집중. 대만 리스크는 여전히 저평가.<br>
+            <b>Variant</b> <span class="tag t-v">V</span>: 엔은 (a) BOJ 인상 (b) 글로벌 risk-off (c) Fed 정지 시나리오 세 경로 모두에서 강세 → 가장 효율적인 헤지. 메모리는 "AI 버블 붕괴"가 아니라 "멀티플 붕괴 + 이익 정점 논쟁" 단계이며 실적이 꺾이기 전까지 숏은 크라우디드. <b>촉매</b>: 11/26 BOK · 12/1 한국 11월 수출 ⚠ verify · 12/18 BOJ · 11-12월 PLA 성수기.</p>
+          </div>
+          <div class="blk"><div class="lbl">4 · Scenarios</div>
+            <div class="scn">
+              <div class="s base"><div>Base</div><div class="p">50%</div>BOJ 12월 인상, USD/JPY 150-160, 칩주 고변동 바닥 다지기</div>
+              <div class="s bull"><div>Bull</div><div class="p">20%</div>AI 실적 재확인. KOSPI/TAIEX 반등, KRW 강세</div>
+              <div class="s bear"><div>Bear</div><div class="p">30%</div>언와인드 심화 + PLA 대규모 훈련. 반도체↓, JPY↑, TWD↓</div>
+              <div class="s tail"><div>Tail</div><div class="p">~</div>대만 격리(quarantine) → 글로벌 반도체 공급 충격</div>
+            </div>
+          </div>
+          <div class="blk trades-inline"><div class="lbl" style="color:var(--rv-ink)">5 · Trade Expression</div>
+            <code>N4</code> USD/JPY Mar27 풋스프레드 · <code>N5</code> SK하이닉스 vs SMH RV(0.5x) · <code>N8</code> USD/TWD 콜스프레드.</div>
+          <div class="blk"><div class="lbl">6 · Portfolio Fit</div>
+            <p>N4·N8은 risk-off 클러스터(N7 포함 ≤35bps). N5는 시장중립이나 한국 리스크 잔존 → N8이 부분 헤지. KRW는 6월 1,527 → 1,336-1,345로 이미 강세, 추가 표현 없음.</p></div>
+          <div class="blk trig"><div class="lbl">7 · Monitoring Triggers</div>
+            <ul>
+              <li class="hit">TRIGGERED 2026-09-18 (06-26판) "BOJ 추가인상 → USD/JPY 하방" · 단, 하방은 8/3 155.20 이후 지속 안 됨</li>
+              <li>If BOJ 12/18 동결 + USD/JPY &gt;162 → N4 절반 축소</li>
+              <li>If 한국 11월 반도체 수출 MoM 감소 → N5 롱레그 축소</li>
+              <li>If PLA 명명된 대규모 훈련 공표 → N8 사이즈업, N5 gross 축소</li>
+            </ul>
+          </div>
+          <div class="cross"><b>Cross-Asset Confirmation:</b> rates(JGB 10y 2.72-2.80% 출처 충돌) · FX(JPY 159.2, TWD 32.939, KRW 1,342.4) · equity(Nikkei 57,012, KOSPI 4,697.51, TAIEX 38,195 — 11/25 재급락) · vol(VIX 28.3) → <b>부분 충돌 (11-26 갱신)</b>: 11-25판이 경고한 재전이가 현실화(KOSPI -6.16%). 실적(11/1-20 반도체 수출 ~4배) vs 메모리 피크 논쟁(BNP). RV·FX 옵션으로 분리 유지.</div>
+        </div>
+      </div>
+
+      <!-- CARD 5 US-CHINA -->
+      <div class="card">
+        <div class="head"><div class="k">Priority 5 · 직전 1위</div>
+          <div class="t">미중 관계 / Managed Stability, Tech Escalation <small>(휴전 · 수출통제 · 위안 · 희토류)</small></div></div>
+        <div class="body">
+          <div class="blk"><div class="lbl">1 · Temporal Evolution</div>
+            <ul>
+              <li>2026-01-15 H200 대중 조건부 수출 규정(Federal Register) <span class="tag t-f">F</span></li>
+              <li>05-13~15 트럼프 국빈 방중: 농산물 $17bn·Boeing 200대, "Board of Trade" 신설 <span class="tag t-f">F</span> <span class="tag t-pc">post-cutoff</span></li>
+              <li>09-23 Busan 휴전 2026-11-10 → <b>2027-01-10 연장</b> · 09-24~26 시진핑 국빈 방미 <span class="tag t-f">F</span></li>
+              <li>유예 항목(~1/10): 中 추가 24% 관세, 中 2025-10 희토류 통제, 양국 항만수수료, 美 Affiliates Rule <span class="tag t-f">F</span></li>
+              <li>11-13 Board of Trade 첫 화상회의, 합의 없음 · 11-19 BIS 원격접근 규정 발효(동남아·브라질 라이선스, 기존 고객 2/17 유예), MOFCOM 대응 경고 <span class="tag t-f">F</span></li>
+              <li>11-18~19 APEC Shenzhen: "전략적 안정" 행동계획 초안 합의, 신규 관세 조건 없음. 다음 접점 12월 G20(Miami) <span class="tag t-f">F</span></li>
+              <li>中 Q3 GDP +4.5% y/y · 10월 수출 +35.2%, 흑자 $105.3bn · CPI 0.7%, PPI 5.7% · 소매 +0.4%, FAI 1-10월 -8.1% <span class="tag t-f">F</span></li>
+              <li>11-24 PBOC 픽싱 6.7111(2022-04-20 이후 최강, Reuters 예상 6.6757, 전일 6.7120) · 위안 3주 고점 <span class="tag t-m">M</span>(InvestingLive·Finimize)</li>
+              <li>11-25 <b>USTR Section 301 "구조적 과잉생산" 관세 제안</b>: 8개월 조사(16개국) → 中 20%(조사상 40% "정당", 휴전 미이행 시 40% 가능)·베트남 20%(35% "정당") 등 14개국, 국가별 세율은 연방관보 고시, 의견수렴·청문회 후 빨라야 2027-01 발효 · Board of Trade 검토 $30bn 中 품목 면제 · 中 외교부 "과잉생산은 존재하지 않는다", 美 당국자 "보복 예상 안 함" (InvestmentNews·RTE·Yahoo) <span class="tag t-f">F</span> · 기존 관세와 중첩 여부 보도 충돌(Yahoo "일부 중첩, 일부 품목 40%+" vs RTE·InvestmentNews "비중첩, 높은 세율 적용") ⚠ verify</li>
+            </ul>
+          </div>
+          <div class="blk"><div class="lbl">2 · Transmission</div>
+            <p>1차: 관세 축은 법원(IEEPA 무효)과 정상외교로 안정, 기술 축은 원격접근 규정으로 강화 → NVIDIA 중국 DC 매출 가이던스 0 <span class="tag t-m">M</span> ⚠ verify. 2차: 기록적 무역흑자 + PBOC의 점진 절상 관리(픽싱이 컨센서스보다 450-470pip 약세) <span class="tag t-m">M</span> → USD/CNH 6.64-6.67. 내수 부진(소매 +0.4%)과 PPI 반등(에너지)이 공존.</p>
+          </div>
+          <div class="blk variant"><div class="lbl">3 · Current Pricing + Variant View</div>
+            <p><b>컨센서스</b> <span class="tag t-m">M</span>: "합의 없는 관리된 안정", 1/10 만기 전 재연장, 2026 추가 부양 없음(ANZ·ING).<br>
+            <b>Variant</b> <span class="tag t-v">V</span>: 우선순위를 1위에서 5위로 내린다. 관세 리스크는 법원이 제거했고 양 정상이 안정을 원한다. 남은 비대칭은 MOFCOM 보복(희토류 유예 철회 카드)과 1/10 절벽이며, 위안이 4년 최강인 지금 USD/CNH 상방 옵션이 상대적으로 싸다. <b>촉매</b>: 12월 G20 Miami · 1/10 휴전 만기 · 2/17 원격접근 유예 종료.</p>
+          </div>
+          <div class="blk"><div class="lbl">4 · Scenarios</div>
+            <div class="scn">
+              <div class="s base"><div>Base</div><div class="p">60%</div>1/10 전 재연장, 기술통제 점진 강화. USD/CNH 6.55-6.75</div>
+              <div class="s bull"><div>Bull</div><div class="p">15%</div>Board of Trade 합의. 위안 추가 강세, HSI 반등</div>
+              <div class="s bear"><div>Bear</div><div class="p">25%</div>MOFCOM 보복·휴전 만료. 희토류 재통제, USD/CNH &gt;6.85</div>
+              <div class="s tail"><div>Tail</div><div class="p">~</div>대만 무기판매 재개 + 금융 제재 → 위안 갭 약세</div>
+            </div>
+          </div>
+          <div class="blk trades-inline"><div class="lbl" style="color:var(--rv-ink)">5 · Trade Expression</div>
+            <code>N7</code> USD/CNH Mar27 콜스프레드(1/10 이후 만기). 중국 주식 아웃라이트 엣지 없음(HSI YTD -13%).</div>
+          <div class="blk"><div class="lbl">6 · Portfolio Fit</div>
+            <p>N7은 risk-off/USD 축(N4·N8)과 양(+)상관이나, 엔 강세(N4)와 위안 약세(N7)는 대만 시나리오에서 동시 페이오프 → 의도된 중복, 합산 캡 적용.</p></div>
+          <div class="blk trig"><div class="lbl">7 · Monitoring Triggers</div>
+            <ul>
+              <li>If MOFCOM 구체적 보복(희토류 유예 철회) → N7 사이즈업</li>
+              <li>If G20에서 휴전 장기 연장 + 관세 인하 합의 → N7 청산</li>
+              <li>If USD/CNH &lt;6.55 → 반증 접근, N7 축소</li>
+              <li>If USTR 연방관보 고시에서 中 세율 &gt;20% 또는 MOFCOM 맞대응 관세 → N7 사이즈업, 미중 우선순위 상향 (11-26 추가)</li>
+            </ul>
+          </div>
+          <div class="cross"><b>Cross-Asset Confirmation:</b> rates(中 금리 데이터 미확보) · FX(CNH 4년 최강, 픽싱으로 속도 조절) · equity(HSI·HSCEI 11/25 미확보) · policy(USTR 中 20% 과잉생산 관세 제안, 11/25) · cmdty(구리 $5.53/lb) → <b>부분 충돌</b>: 무역흑자는 위안 강세, 기술 디커플링은 중국 테크 약세.</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ 5. SCENARIO MATRIX ============ -->
+  <section>
+    <h2 class="sec">Scenario Probability Matrix <span class="n">section × Base/Bull/Bear + Tail</span></h2>
+    <div class="tblwrap">
+    <table>
+      <thead>
+        <tr><th>Section</th><th class="num">Base</th><th>Base 자산임팩트</th><th class="num">Bull</th><th>Bull 자산임팩트</th><th class="num">Bear</th><th>Bear 자산임팩트</th><th>Tail (convexity 헤지)</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><b>1 미국 통화·재정</b> <span class="badge-new">NEW</span></td><td class="num">50%</td><td>12월 인상 후 정지, 2y 4.4-4.8%</td><td class="num">20%</td><td>주식 반등, 불스티프</td><td class="num">30%</td><td>신용 이벤트, 침체 프라이싱</td><td>10y &gt;5.5% 텀프리미엄 스파이크 <code>N6</code></td></tr>
+        <tr><td><b>2 중동 에너지</b></td><td class="num">45%</td><td>Brent $85-100</td><td class="num">30%</td><td>Brent &lt;$75</td><td class="num">25%</td><td>Brent &gt;$110</td><td>사우디 설비 피해 → $130+ <code>N3</code></td></tr>
+        <tr><td><b>3 유럽 재정</b></td><td class="num">50%</td><td>OAT-Bund 130-160bp</td><td class="num">20%</td><td>&lt;120bp</td><td class="num">30%</td><td>&gt;180bp, 정부 붕괴</td><td>TPI 부적격 → periphery 전이 <code>N2</code></td></tr>
+        <tr><td><b>4 동북아</b></td><td class="num">50%</td><td>USD/JPY 150-160, 칩 바닥 다지기</td><td class="num">20%</td><td>KOSPI/TAIEX 반등</td><td class="num">30%</td><td>반도체↓, JPY↑, TWD↓</td><td>대만 격리 <code>N4</code> <code>N8</code></td></tr>
+        <tr><td><b>5 미중</b></td><td class="num">60%</td><td>재연장, CNH 6.55-6.75</td><td class="num">15%</td><td>관세 인하 합의</td><td class="num">25%</td><td>희토류 재통제, CNH &gt;6.85</td><td>금융 제재 → 위안 갭 <code>N7</code></td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p class="smallnote">확률은 전략가 주관 <span class="tag t-v">V</span>, 각 행 Base+Bull+Bear=100%, Tail은 합산 제외. <b>11-26 일일 갱신: 확률 변경 없음</b> (USTR 과잉생산 관세는 미중 Bear 경로의 일부이나 中 세율이 휴전 상한 내·발효 1월 이후라 Base(재연장) 훼손 아님, 11/30 전면 개정에서 미중 Bear 25%→30% 상향 검토 · 아시아 칩 재급락은 동북아 Bear 경로 안의 변동 · Brent $94.61은 중동 Base 밴드 $85-100 내). <b>11-25</b>: 변경 없음 (AI 랠리 되돌림·소비자신뢰 서프라이즈는 미국 Base 경로 안의 변동 · AP 보도로 중동 합의 경로가 약해졌으나 대규모 작전 재개 신호도 없어 Bull/Bear 동시 유지 · 아시아 급반등은 동북아 Bull 일부 실현이나 하루짜리). <b>11-24</b>: 변경 없음 (NVIDIA 반등은 미국 섹션 Bull 경로의 일부 실현이나 Fed 경로 불변 · 중동은 협상 연장 신호 vs 주말 공격으로 상쇄). <b>11-23 전면 개정 시 변경 사유</b>: 중동 55/25/20 → 45/30/25 (MoU 붕괴로 "불안정 휴전" 중간값 소멸, 합의·확전 양 끝 동시 확대) · 유럽 55/20/25 → 50/20/30 (OAT-Bund 150bp 현실화, 예산 부결·등급 전망 하향) · 동북아 60/22/18 → 50/20/30 (AI 언와인드 진행 + PLA 성수기, 단 2026 대규모 훈련 부재) · 미중 55/20/25 → 60/15/25 (IEEPA 무효·정상외교로 관세 축 안정, 우선순위 1→5). 미국 섹션 신설.</p>
+  </section>
+
+  <!-- ============ 6. CROSS-ASSET LEVEL DASHBOARD ============ -->
+  <section>
+    <h2 class="sec">Cross-Asset Level Dashboard <span class="n">현재 vs 직전 전면 개정판 ref</span><span class="hint">미국·유럽 11/25 종가 · 아시아 11/25 종가 (웹 교차)</span></h2>
+    <div class="tblwrap">
+    <table>
+      <thead><tr><th>자산</th><th class="num">현재 레벨 (11/25)</th><th class="num">직전판 ref (11-23 Full)</th><th>비고 · 신뢰도</th></tr></thead>
+      <tbody>
+        <tr><td>Fed funds 목표</td><td class="num">3.75-4.00%</td><td class="num">3.75-4.00%</td><td>12/9 +25bp 98%(CME, Yahoo 인용 단일) · Jan 추가 확률 11/25 미확보 <span class="tag t-m">M</span> ⚠ verify</td></tr>
+        <tr><td>UST 2y</td><td class="num">4.637% (-4.55bp)</td><td class="num">4.63-4.71%</td><td>Longbridge NY 마감 · 장중 저점 4.575% · Wisevoter 장전 4.630% ⚠ verify</td></tr>
+        <tr><td>UST 5y</td><td class="num">데이터 미확보</td><td class="num">데이터 미확보</td><td>3일째 미확보 · 라이브 확인 필요 ⚠ verify</td></tr>
+        <tr><td>UST 10y</td><td class="num">4.82-4.85%</td><td class="num">4.91-4.95%</td><td>Longbridge 4.846%(-8.36bp) · Yahoo 위젯 4.848 · Yahoo 요약 4.82%(-7bp) → 밴드 ⚠ verify</td></tr>
+        <tr><td>UST 30y</td><td class="num">5.24% (-8.06bp)</td><td class="num">5.31-5.34%</td><td>Longbridge 5.2397% · Yahoo 요약 5.24% 일치</td></tr>
+        <tr><td>2s10s / 5s30s</td><td class="num">+21.1bp (-3.0bp) / 산출 불가</td><td class="num">+24~+30bp / -</td><td>Longbridge · 5y 미확보 ⚠ verify</td></tr>
+        <tr><td>10y TIPS 실질</td><td class="num">2.723% (-7.7bp)</td><td class="num">2.88-2.90%</td><td>Longbridge 단일 · T7 반증선 2.5% 위 유지 ⚠ verify</td></tr>
+        <tr><td>Bund 10y</td><td class="num">데이터 미확보</td><td class="num">3.29-3.40%</td><td>최종 확인 3.30%(11/23) · Wisevoter "11/25 하락"만 확인 ⚠ verify</td></tr>
+        <tr><td>OAT-Bund 10y</td><td class="num">데이터 미확보</td><td class="num">145-155bp</td><td>최종 확인 153.1bp(11/23) ⚠ verify</td></tr>
+        <tr><td>BTP-Bund 10y</td><td class="num">데이터 미확보</td><td class="num">105.8bp</td><td>⚠ verify</td></tr>
+        <tr><td>JGB 10y / 30y</td><td class="num">데이터 미확보</td><td class="num">2.78-2.79% / ~3.85%</td><td>11/24 밴드 2.72-2.80% 이후 미갱신 ⚠ verify</td></tr>
+        <tr><td>DXY</td><td class="num">데이터 미확보</td><td class="num">103.6-103.8</td><td>Bloomberg(Rigzone) "달러 상승"만 확인 · 11/24 아시아 장중 ~104.25 ⚠ verify</td></tr>
+        <tr><td>EUR/USD</td><td class="num">데이터 미확보</td><td class="num">1.097-1.100</td><td>⚠ verify</td></tr>
+        <tr><td>USD/JPY</td><td class="num">&lt;160 (159-160 추정)</td><td class="num">158.6-158.9</td><td>FXStreet 헤드라인 "160 아래 유지"·Finwire · 레벨 미확보 ⚠ verify</td></tr>
+        <tr><td>USD/CNH · CNY fix</td><td class="num">데이터 미확보</td><td class="num">6.64-6.67 · 6.7131</td><td>11/24 fix 6.7111 이후 미갱신 ⚠ verify</td></tr>
+        <tr><td>USD/KRW</td><td class="num">데이터 미확보</td><td class="num">1,336-1,345</td><td>11/24 1,342.4 이후 미갱신 · KJD·TradingKey 환산값 충돌로 역산 불가 ⚠ verify</td></tr>
+        <tr><td>USD/TWD</td><td class="num">데이터 미확보 ("급등 마감")</td><td class="num">32.94 (11/19)</td><td>CNA 헤드라인만, 본문 조회 실패 · 11/24 32.939 ⚠ verify</td></tr>
+        <tr><td>Brent / WTI</td><td class="num">$94.61 / $83.68 (정산)</td><td class="num">$92.4-92.6 / $83.3-84.0</td><td>+3.5% / +2% · Bloomberg via Rigzone · 11/24 $91.40/$82.05는 The Nation과 일치 <span class="tag t-m">M</span> ⚠ verify</td></tr>
+        <tr><td>OVX / TTF</td><td class="num">데이터 미확보 / 데이터 미확보</td><td class="num">49.6-50.7 / €86.5</td><td>라이브 확인 필요 ⚠ verify</td></tr>
+        <tr><td>Gold / Silver</td><td class="num">$3,608.4 (+0.48%) / 미확보</td><td class="num">$3,515-3,626 / $42.65</td><td>Yahoo 위젯 단일(선물 추정) ⚠ verify</td></tr>
+        <tr><td>Copper</td><td class="num">데이터 미확보</td><td class="num">$5.53/lb</td><td>⚠ verify</td></tr>
+        <tr><td>S&amp;P 500</td><td class="num">7,182.78-7,192.96 (-0.11~-0.25%)</td><td class="num">6,910.39</td><td>Yahoo 7,182.78(-18.31, 11/24 7,201.09에서 산술 일치) vs 247wallst 7,183.00/7,192.96(내부 모순) → 밴드 ⚠ verify</td></tr>
+        <tr><td>Dow</td><td class="num">50,182.95-50,219.90 (+0.33~+0.42%)</td><td class="num">48,147.33</td><td>Yahoo(산술 일치) vs 247wallst ⚠ verify</td></tr>
+        <tr><td>Nasdaq / SOX</td><td class="num">23,585.80 (-0.62%) / 종가 미확보</td><td class="num">22,617.73 / 8,408.6</td><td>Yahoo · 247wallst -0.77% · SOX 11/24 -7.88%, 11/25 장중 -6%+ ⚠ verify</td></tr>
+        <tr><td>NVDA</td><td class="num">$149.30 (-3.91%)</td><td class="num">~$125.5 (11/20 역산)</td><td>Yahoo 4:00 PM 종가 · 11/24 $155.38(-5.86%)·11/23 $165.05 역산 일치 (Errata)</td></tr>
+        <tr><td>Nikkei 225</td><td class="num">57,011.62 (-2.78%)</td><td class="num">56,437-56,509 (11/20)</td><td>TradingKey · KJD 등락률 일치 <span class="tag t-m">M</span></td></tr>
+        <tr><td>KOSPI</td><td class="num">4,697.51 (-6.16%)</td><td class="num">4,670-4,710 장중 · 4,869.96 (11/20)</td><td>KJD·Sedaily·KED 일치 · 1/13 이후 최저 종가 <span class="tag t-m">M</span></td></tr>
+        <tr><td>SK하이닉스</td><td class="num">₩1,030,000 (-11.05%)</td><td class="num">₩1,113,000</td><td>N5 롱레그 · KJD·Sedaily·TradingKey 일치 · 4/10 이후 최저</td></tr>
+        <tr><td>TAIEX</td><td class="num">38,195.43 (-4.80%)</td><td class="num">36,033 (11/20)</td><td>CNA · 거래대금 NT$1.19tn · 장중 저점 36,681.90</td></tr>
+        <tr><td>HSI / HSCEI</td><td class="num">데이터 미확보</td><td class="num">22,378-22,411 / 7,527-7,554</td><td>⚠ verify</td></tr>
+        <tr><td>Euro Stoxx 50</td><td class="num">데이터 미확보</td><td class="num">5,942-6,124</td><td>3일째 미확보 ⚠ verify</td></tr>
+        <tr><td>VIX / MOVE</td><td class="num">28.29 (+1.93) / 데이터 미확보</td><td class="num">35.89 / 106.3</td><td>Yahoo 위젯(스냅샷 시점 미확정) · Finwire 티커 26.36(일자 미상) ⚠ verify</td></tr>
+        <tr><td>Bitcoin</td><td class="num">~$60.2k (+0.7%)</td><td class="num">$59.0-61.4k</td><td>Yahoo 위젯 단일 ⚠ verify</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p class="smallnote">직전판 ref 열은 직전 전면 개정판(11-23) 값으로 고정. 06-26 ref는 archive/2026-11-23.html 참조. 이번 판은 TradingView 일일 한도 소진·CNBC/Investrade/FXStreet 조회 실패로 FX 종가 대부분 미확보. 미국 주가지수는 Yahoo 종가 위젯 값이 전일 종가와 산술 일치하는 것으로 1차 교차했다.</p>
+  </section>
+
+  <!-- ============ 7. TIMELINE AND IMPACT ============ -->
+  <section>
+    <h2 class="sec">Timeline and Impact Matrix <span class="n">06-26 이후 사건 · 11-26 신규분 NEW 표시</span></h2>
+    <div class="tblwrap">
+    <table>
+      <thead><tr><th>사건</th><th>발생시기</th><th>시장 반응 (re-pricing)</th><th>현재 영향도</th><th>신뢰도</th></tr></thead>
+      <tbody>
+        <tr><td>이란 상선 공격 → 美 80+ 표적 공습, "MoU over"</td><td class="num">2026-07-07~08</td><td>오일 리스크 프리미엄 재점화</td><td>High</td><td><span class="tag t-f">F</span> <span class="tag t-pc">pc</span></td></tr>
+        <tr><td>美 이란 항구 봉쇄 재개</td><td class="num">2026-07-12~14</td><td>Brent 상방 추세 전환</td><td>High</td><td><span class="tag t-f">F</span> <span class="tag t-pc">pc</span></td></tr>
+        <tr><td>Sec.122 관세 만료 → Sec.301 forced-labor 10-12.5%</td><td class="num">2026-07-24</td><td>관세 체계 재구축, 中 12.5% 구간</td><td>Med</td><td><span class="tag t-f">F</span> <span class="tag t-pc">pc</span></td></tr>
+        <tr><td>Fed 동결(9-3, 인상 소수의견 3)</td><td class="num">2026-07-29</td><td>9월 인상 프라이싱 강화</td><td>Med</td><td><span class="tag t-f">F</span> <span class="tag t-pc">pc</span></td></tr>
+        <tr><td>日 ¥7.976tn 단일일 개입 + 美日 공동개입</td><td class="num">2026-07-30~31</td><td>USD/JPY ~164 → 8/3 155.20</td><td>High (160 방어선)</td><td><span class="tag t-f">F</span> <span class="tag t-pc">pc</span></td></tr>
+        <tr><td>US-Iran MoU 만료, 합의 없음</td><td class="num">2026-08-17</td><td>이란 통항 허가제·"환경 통행료" 선언</td><td>High</td><td><span class="tag t-f">F</span> <span class="tag t-pc">pc</span></td></tr>
+        <tr><td>BOK 3.00% 인상(7월 2.75%에 이어)</td><td class="num">2026-08-27</td><td>KRW 강세 전환</td><td>Med</td><td><span class="tag t-f">F</span> <span class="tag t-pc">pc</span></td></tr>
+        <tr><td>10y JGB 3.005%(1996년 이후 최고)</td><td class="num">2026-09-01</td><td>일본 재정 프리미엄</td><td>Med</td><td><span class="tag t-f">F</span> <span class="tag t-pc">pc</span></td></tr>
+        <tr><td>ECB 인상 DFR 2.50%</td><td class="num">2026-09-10</td><td>Bund 17년 고점(9월 말 3.65%)</td><td>High</td><td><span class="tag t-f">F</span> <span class="tag t-pc">pc</span></td></tr>
+        <tr><td>Fed 인상 3.75-4.00%(12-0)</td><td class="num">2026-09-16</td><td>10y 5% 돌파, 듀레이션 매도</td><td>High (레짐 핵심)</td><td><span class="tag t-f">F</span> <span class="tag t-pc">pc</span></td></tr>
+        <tr><td>BOJ 인상 1.25%</td><td class="num">2026-09-18</td><td>엔 지지 제한적</td><td>Med</td><td><span class="tag t-f">F</span> <span class="tag t-pc">pc</span></td></tr>
+        <tr><td>OAT-Bund 100bp 돌파 → 10/2 150bp</td><td class="num">2026-09-18~10-02</td><td>OAT &gt; BTP, 프랑스 재정 재가격</td><td>High</td><td><span class="tag t-m">M</span> <span class="tag t-pc">pc</span></td></tr>
+        <tr><td>미중 휴전 2027-01-10 연장 · 시진핑 방미</td><td class="num">2026-09-23~26</td><td>관세 리스크 후퇴</td><td>Med</td><td><span class="tag t-f">F</span> <span class="tag t-pc">pc</span></td></tr>
+        <tr><td>Fitch 프랑스 전망 부정적 · Moody's 부정적 유지</td><td class="num">2026-10-23~30</td><td>스프레드 고원</td><td>Med</td><td><span class="tag t-f">F</span> <span class="tag t-pc">pc</span></td></tr>
+        <tr><td>Houthi 사우디 설비 공격 · Hormuz 림펫기뢰 · Brent $117.64</td><td class="num">2026-10-23~30</td><td>Brent 4월 이후 고점, TTF €100+</td><td>High</td><td><span class="tag t-f">F</span> <span class="tag t-pc">pc</span></td></tr>
+        <tr><td>美 중간선거 Democrats 양원 장악</td><td class="num">2026-11-03</td><td>Brent -8.9% 장중(11/4), 금리 하락</td><td>High (전쟁·재정 경로)</td><td><span class="tag t-f">F</span> <span class="tag t-pc">pc</span></td></tr>
+        <tr><td>프랑스 하원, 2027 예산 세입편 부결 · BOE 4.00% 인상</td><td class="num">2026-11-04~05</td><td>유럽 스태그 우려</td><td>Med</td><td><span class="tag t-f">F</span> <span class="tag t-pc">pc</span></td></tr>
+        <tr><td>IAEA, 이란 HEU 검증 불가 보고 · IRGC 바레인 공격</td><td class="num">2026-11-13~21</td><td>오일 바닥 지지</td><td>High</td><td><span class="tag t-f">F</span> <span class="tag t-pc">pc</span></td></tr>
+        <tr><td>NVIDIA FQ3(매출 $115.8bn) · 경영진 교체·SEC 조사 보도</td><td class="num">2026-11-17~20</td><td>NVDA 11/20 -14%, SOX -10.7%</td><td>High</td><td><span class="tag t-m">M</span> ⚠ verify <span class="tag t-pc">pc</span></td></tr>
+        <tr><td>APEC Shenzhen 트럼프-시진핑 · BIS 원격접근 규정 발효</td><td class="num">2026-11-18~19</td><td>HS Tech 8연속 하락</td><td>Med</td><td><span class="tag t-f">F</span> <span class="tag t-pc">pc</span></td></tr>
+        <tr><td>S&amp;P 500 7연속 하락·조정 진입, VIX 35.9</td><td class="num">2026-11-20</td><td>안전자산 랠리(10y 4.92-4.95%), 골드·BTC 유동성 매도</td><td>High</td><td><span class="tag t-m">M</span> <span class="tag t-pc">pc</span></td></tr>
+        <tr><td>바레인 산업시설 피격 · Khasab 인근 유조선 피격(UKMTO)</td><td class="num">2026-11-21</td><td>주말 헤지 수요 → 월요일 언와인드</td><td>Med</td><td><span class="tag t-m">M</span> ⚠ verify <span class="tag t-pc">pc</span></td></tr>
+        <tr><td>Houthi, 사우디 Rabigh 정유소 "직접 타격" 주장(미확인) · 트럼프 Fox "협상 실패 시 2027 재개"</td><td class="num">2026-11-22</td><td>협상 시한 연장으로 해석 <span class="tag t-m">M</span>(Bloomberg)</td><td>Med</td><td><span class="tag t-m">M</span> ⚠ verify <span class="tag t-pc">pc</span></td></tr>
+        <tr><td>KOSPI -3.31%(4,708.54), SK하이닉스 -2.5% · 관세청 11/1-20 반도체 수출 ~4배</td><td class="num">2026-11-23 (아시아)</td><td>외인 매도 지속, 실적-가격 괴리 확대</td><td>Med (N5)</td><td><span class="tag t-f">F</span>(수출) <span class="tag t-m">M</span>(지수) <span class="tag t-pc">pc</span></td></tr>
+        <tr><td>NVIDIA 이사회 Huang CEO 복귀(8-K) · Williams "inflation is simply too high"</td><td class="num">2026-11-23</td><td>S&amp;P +4.73%, Nasdaq +6.51%, NVDA +31%, VIX 27.1 · 2y +2~5bp, DXY 104.3</td><td>High (위험자산) / Low (Fed 경로)</td><td><span class="tag t-f">F</span> <span class="tag t-pc">pc</span></td></tr>
+        <tr><td>Brent Jan -3.5% $89.37, WTI -4.5% $80.17(8월 이후 최저권)</td><td class="num">2026-11-23</td><td>공급과잉 내러티브(IEA·GS·Bernstein) 우위</td><td>Med (N3 풋레그)</td><td><span class="tag t-m">M</span> <span class="tag t-pc">pc</span></td></tr>
+        <tr><td>IRGC "위반 유조선 3척 기뢰 피격" 주장 · UKMTO 발표와 충돌 · 美, 이란 유조선 사이버공격(최대 50척) 조사(WSJ)</td><td class="num">2026-11-23</td><td>11/24 유가 반등 재료</td><td>Med</td><td><span class="tag t-m">M</span> ⚠ verify <span class="tag t-pc">pc</span></td></tr>
+        <tr><td>Vance·Rubio 카타르 총리 면담 · AP "트럼프, 이란과 합의 필요 없다" · Libya Sharara 재가동</td><td class="num">2026-11-23</td><td>합의 기대 약화 vs 공급 증가</td><td>Med (N3 양 레그)</td><td><span class="tag t-m">M</span> <span class="tag t-f">F</span>(Libya) <span class="tag t-pc">pc</span></td></tr>
+        <tr><td>KOSPI +6.32%(5,006.03) · SK하이닉스 +6.73% · TAIEX +8.99%(40,122, 사상 최대 포인트 상승) · Nikkei +3.9~4.2%</td><td class="num">2026-11-24 (아시아)</td><td>NVIDIA 랠리 지연 반영, 한국 외인 순매수 전환 / 대만 외인은 순매도</td><td>High (N5)</td><td><span class="tag t-m">M</span> <span class="tag t-pc">pc</span></td></tr>
+        <tr><td>PBOC 픽싱 6.7111, 2022-04 이후 최강(예상 6.6757)</td><td class="num">2026-11-24</td><td>위안 3주 고점, 절상 속도는 계속 조절</td><td>Low (N7)</td><td><span class="tag t-m">M</span> <span class="tag t-pc">pc</span></td></tr>
+        <tr><td>美 AI 칩 되돌림: NVDA 약 -7.4%, Nasdaq -1.48%, S&amp;P -0.49%, Dow +0.86%(50,021)</td><td class="num">2026-11-24</td><td>칩 시총 ~$870bn 감소(장중 집계) · 헬스케어·필수소비재로 로테이션</td><td>High (N5 숏레그)</td><td><span class="tag t-m">M</span> ⚠ verify <span class="tag t-pc">pc</span></td></tr>
+        <tr><td>11월 Conference Board 소비자신뢰 103.3(예상 92.5, 10월 91.9)</td><td class="num">2026-11-24</td><td>2y +1.9bp, Jan 추가 인상 프라이싱 유지</td><td>Med (N1 불리)</td><td><span class="tag t-m">M</span> ⚠ verify <span class="tag t-pc">pc</span></td></tr>
+        <tr><td>Brent +2.3% $91.40, WTI +2.35% $82.05</td><td class="num">2026-11-24</td><td>11/23 낙폭 대부분 회복 · DB 10월 재고 +52mb(과잉 1.7mb/d)</td><td>Med (N3)</td><td><span class="tag t-m">M</span> <span class="tag t-pc">pc</span></td></tr>
+        <tr><td>美 AI 칩 11/24 종가 확정: NVDA -5.86%·SOX -7.88%·Micron -11.0% (11-25판 장중값 교정) <span class="badge-new">NEW</span></td><td class="num">2026-11-24</td><td>11/25 아시아로 전이</td><td>High (N5)</td><td><span class="tag t-m">M</span> <span class="tag t-pc">pc</span></td></tr>
+        <tr><td>KOSPI -6.16%(4,697.51)·SK하이닉스 -11.05%·삼성전자 -9.87%·TAIEX -4.80%·Nikkei -2.78% · BNP Micron 하향 <span class="badge-new">NEW</span></td><td class="num">2026-11-25 (아시아)</td><td>11/24 급반등 전액 반납 이상, 외인 -₩1.95tn · 매도 사이드카 4일 연속</td><td>High (N5 롱레그)</td><td><span class="tag t-m">M</span> <span class="tag t-pc">pc</span></td></tr>
+        <tr><td>USTR Section 301 "구조적 과잉생산" 관세 제안(中 20% 등 14개국, 빨라야 2027-01 발효) <span class="badge-new">NEW</span></td><td class="num">2026-11-25</td><td>대만·한국 장중 매도 재료(CNA), 美 테크 약세 가중(Yahoo)</td><td>High (N7·N8, 미중 우선순위)</td><td><span class="tag t-f">F</span> <span class="tag t-pc">pc</span></td></tr>
+        <tr><td>10월 PCE 3.8%·core 3.3%(예상 3.2%) · Beige Book 비용 압력 지속 <span class="badge-new">NEW</span></td><td class="num">2026-11-25</td><td>그럼에도 2y -4.6bp·10y -8.4bp·30y -8.1bp, 12월 인상 98%</td><td>Med (N1 유리 / N6 불리)</td><td><span class="tag t-m">M</span> ⚠ verify <span class="tag t-pc">pc</span></td></tr>
+        <tr><td>S&amp;P -0.25%(7,183)·Nasdaq -0.62%·Dow +0.33%, NVDA -3.9%·LRCX -6.5%·AMAT -4.4% · VIX 28.3 <span class="badge-new">NEW</span></td><td class="num">2026-11-25</td><td>장중 Nasdaq -4% 급락 후 대부분 회복, 테크→올드이코노미 로테이션</td><td>Med</td><td><span class="tag t-m">M</span> ⚠ verify <span class="tag t-pc">pc</span></td></tr>
+        <tr><td>사우디 Ras Tanura 드론 4기 요격 · Houthi 리야드 금융지구 타격 · IRGC 컨테이너선 기뢰 주장 → Brent +3.5% $94.61 <span class="badge-new">NEW</span></td><td class="num">2026-11-24~25</td><td>1주 고점, 추수감사절 앞 얇은 거래 · EIA 원유 +1.1mb</td><td>Med (N3 콜레그)</td><td><span class="tag t-m">M</span> ⚠ verify <span class="tag t-pc">pc</span></td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p class="smallnote"><span class="tag t-pc">pc</span> = post-cutoff (라이브 조회 기반, 단말 재확인 권고).</p>
+  </section>
+
+  <!-- ============ 8. HARD CATALYST CALENDAR ============ -->
+  <section>
+    <h2 class="sec">Hard Catalyst Calendar <span class="n">옵션 만기는 관련 날짜 이후</span></h2>
+    <div class="tblwrap">
+    <table>
+      <thead><tr><th>날짜</th><th>이벤트</th><th>연결 트레이드</th><th>왜 중요한가</th></tr></thead>
+      <tbody>
+        <tr><td class="num">11-27</td><td>獨 2027 예산 본회의</td><td>N2 (간접)</td><td>코어 재정 여력 확인</td></tr>
+        <tr><td class="num">11-26</td><td>BOK 금리결정 (3.25% 예상, 서울경제 설문 18/20 · 11/25 KOSPI -6.16% 직후) · 佛 PLFSS 합동위(CMP) · 美 추수감사절 휴장 · 도쿄 11월 CPI(일자 ⚠ verify)</td><td>N5, N2, N4</td><td>KRW·한국 유동성(증시안정 메시지 여부) · 佛 예산 경로 · BOJ 12/18 전 물가 확인</td></tr>
+        <tr><td class="num">11-27</td><td>美 주식·채권 단축장(종료 시각 ⚠ verify) <span class="badge-new">NEW</span></td><td>N1, N5</td><td>유동성 공백 구간 · 칩 변동성 증폭 가능</td></tr>
+        <tr><td class="num">11-29</td><td>OPEC+ 21개국 장관회의(2027 쿼터)</td><td>N3</td><td>2027 공급과잉 규모</td></tr>
+        <tr><td class="num">~12-01</td><td>한국 11월 수출 ⚠ verify(일정)</td><td>N5</td><td>반증조건(MoM 감소) 판정</td></tr>
+        <tr><td class="num">12-01~03</td><td>美 하원 Huang·NVIDIA 법무총괄 면담(12/1-2) vs 의회 청문회(12/3, Sedaily) — 일정 충돌 ⚠ verify</td><td>N5</td><td>AI 대장주 거버넌스·국가안보 헤드라인 리스크</td></tr>
+        <tr><td class="num">12-04</td><td>美 11월 고용 (2차 출처 ⚠ verify)</td><td>N1</td><td>FOMC 직전 마지막 고용</td></tr>
+        <tr><td class="num">12-09</td><td>FOMC + SEP</td><td>N1, N6</td><td>2027 도트가 N1 반증선</td></tr>
+        <tr><td class="num">12-10</td><td>美 11월 CPI (FOMC 다음날, 2차 출처 ⚠ verify)</td><td>N1</td><td>N1 반증조건(core ≥0.4% m/m)이 SEP 이후에 판정됨</td></tr>
+        <tr><td class="num">12-11</td><td>美 CR(H.R.6500) 만기</td><td>N1</td><td>셧다운 시 데이터 공백</td></tr>
+        <tr><td class="num">12월 (일자 ⚠ verify)</td><td>USTR 과잉생산 관세 연방관보 고시·의견수렴·청문회 <span class="badge-new">NEW</span></td><td>N7, N8, N5</td><td>국가별 세율·중첩 여부 확정 · 中 보복 여부 · 1/10 휴전 만기 협상 레버리지</td></tr>
+        <tr><td class="num">12월 (일자 ⚠ verify)</td><td>G20 Miami</td><td>N7</td><td>트럼프-시진핑 접점</td></tr>
+        <tr><td class="num">12-17</td><td>ECB 회의 · 프랑스 예산 데드라인</td><td>N2</td><td>49.3/오르도낭스 여부</td></tr>
+        <tr><td class="num">12-18</td><td>BOJ 금리결정 (1.50% 예상)</td><td>N4</td><td>160 방어선과 결합한 엔 비대칭</td></tr>
+        <tr><td class="num">2027-01-04</td><td>美 신의회(Democrats) 출범</td><td>N1, N3</td><td>전쟁 예산 제약, 재정 경로</td></tr>
+        <tr><td class="num">2027-01-10</td><td>미중 휴전 만기 (희토류·24%·Affiliates Rule 유예 종료)</td><td>N7</td><td>N7 만기(Mar27)는 이후로 설정</td></tr>
+        <tr><td class="num">2027-01-27</td><td>FOMC (1월 추가 +25bp 69%, TheStreet)</td><td>N1</td><td>N1이 페이드하는 핵심 프라이싱의 첫 판정 · Sep27 만기 이전</td></tr>
+        <tr><td class="num">2027-01 이후</td><td>USTR 과잉생산 관세 최초 발효 가능 시점 <span class="badge-new">NEW</span></td><td>N7</td><td>N7 만기(Mar27)는 이후</td></tr>
+        <tr><td class="num">2027-02-17</td><td>BIS 원격접근 규정 기존고객 유예 종료</td><td>N5, N7</td><td>AI 칩 수요 지역 재배분</td></tr>
+        <tr><td class="num">2027-06-23</td><td>Sec.301 반도체 관세 인상 예정 ⚠ verify</td><td>N5</td><td>칩 공급망 비용</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p class="smallnote">옵션 만기 확인: N1 Sep27 · N3 Feb27/Jun27 · N4 Mar27 · N7 Mar27 · N8 Feb27 → 모두 관련 카탈리스트(12/9, 12/18, 11/29, 2027-01-10, 2027-01-27, USTR 관세 발효 2027-01~) 이후.</p>
+  </section>
+
+  <!-- ============ 9. LIVE VERIFICATION CHECKLIST ============ -->
+  <section>
+    <h2 class="sec">Live Verification Checklist <span class="n">⚠ verify 항목 집계</span><span class="hint">실행 전 Bloomberg/단말에서 확인 · 확인 실패 27건(항목 기준)</span></h2>
+    <ol class="check">
+      <li><span class="pill">RATES</span>UST 11/25 커브 treasury.gov par로 확정: 2y 4.637%·10y 4.846%·30y 5.240%(Longbridge 단일, Wisevoter 장전값 2y 4.630%·10y 4.863%와 시점 차) · <b>5y 미확보(3일째)</b> → 5s30s(N6) 산출 불가 · 7y $44bn 입찰 결과</li>
+      <li><span class="pill">RATES</span>10y TIPS 2.723%(Longbridge 단일) 1차 확인 · ACM 텀프리미엄</li>
+      <li><span class="pill">RATES</span>FedWatch 12/9 +25bp 98%(Yahoo의 CME 인용, 단일) · <b>Jan 추가 인상 확률(11/25 미확보)</b> · SOFR Sep27 레벨·콜스프레드 프라이싱 (N1) · 9월 SEP 공식 표 · FOMC 일자 12/8-9(StockAnalysis) vs 12/9 표기 확인</li>
+      <li><span class="pill">RATES</span>Bund·OAT·OAT-Bund 11/24·11/25 종가(최종 확인 11/23 153.1bp) · BTP-Bund · France 5y CDS (N2)</li>
+      <li><span class="pill">RATES</span>JGB 10y 출처 충돌(TE 2.716% vs 11/20 ~2.80%) · 30y · BOJ 12/18 OIS 프라이싱 (N4)</li>
+      <li><span class="pill">FX</span>DXY·EUR/USD·USD/JPY 11/25 NY 종가(전부 미확보, USD/JPY는 "160 아래"만 확인) · Mar27 풋스프레드 IV·RR (N4) · 11/25 MOF 구두개입 발언자·원문</li>
+      <li><span class="pill">FX</span>USD/CNH·CNY 11/25 현물 종가 및 PBOC 픽싱(Newsquawk 헤드라인 일자 미상) · Mar27 콜 IV (N7) · USD/TWD 11/25 종가("급등 마감" 헤드라인만, CNA 본문 조회 실패) · Feb27 콜 IV (N8) · USD/KRW 11/25 종가(미확보)</li>
+      <li><span class="pill">FX</span>8월 이후 MOF 개입 데이터</li>
+      <li><span class="pill">CMDTY</span>Brent $94.61·WTI $83.68 정산(Bloomberg via Rigzone 단일, Yahoo 위젯 WTI $84.19는 장중) · Brent Feb27/Jun27 선물·콜/풋 IV·스큐 (N3) · OVX·TTF(미확보)</li>
+      <li><span class="pill">CMDTY</span>Hormuz 주간 통항(11/18 주 263척 이후 미확보, "원유 흐름 사상 최대"(Wright 장관·Reuters 인용)와 충돌) · Gulf 수출량 충돌(Vortexa vs Kpler) · JKM</li>
+      <li><span class="pill">CMDTY</span>Gold $3,608.4(+0.48%, Yahoo 위젯 단일)·Silver·Copper 11/25(미확보)</li>
+      <li><span class="pill">EQUITY</span>美 11/25 종가 충돌: S&amp;P 7,182.78(-0.25%, Yahoo) vs 7,183.00(-0.22%) vs 7,192.96(-0.11%)(247wallst 내부 모순) · Dow 50,182.95 vs 50,219.90 · Nasdaq -0.62% vs -0.77% · SOX·SMH 11/25 종가(미확보, N5 숏레그) · Micron 11/25 종가</li>
+      <li><span class="pill">EQUITY</span>SK하이닉스 ₩1,030,000·KOSPI 4,697.51(4,697.52 반올림 차) 확정 · KOSPI 6월 피크 9,385.59 · YTD 산정(YTD vs y/y 혼동 금지) · 11/26 BOK 결과·정부 증시안정 조치</li>
+      <li><span class="pill">EQUITY</span>Nikkei 57,011.62(TradingKey·KJD) · HSI·HSCEI 11/25(미확보) · Euro Stoxx 50(미확보 3일째) · CSI300 · TSMC 11/25 종가(장중 NT$2,135만 확보)</li>
+      <li><span class="pill">EQUITY</span>NVIDIA: SEC·DOJ 조사(Al Jazeera 단일) · 11-12 사임 경위 1차 확인 · 하원 면담 12/1-2 vs 청문회 12/3 충돌 · BNP Micron 하향 리포트 원문(목표가 $775)</li>
+      <li><span class="pill">VOL</span>VIX 28.29(Yahoo 위젯, 스냅샷 시점 미확정) · MOVE(미확보) · TWD/TAIEX IV · KOSPI200 VKOSPI</li>
+      <li><span class="pill">EVENT</span>10월 PCE BEA 원문(core 3.3% vs 일부 사전 보도 3.2%) · Q3 GDP 수정치(Yahoo 요약 4.3% 단일, 속보 3.4%) · 주간 실업수당 실제치(미확보) · Beige Book 원문 · 11월 NFP(12/4)·CPI(12/10) BLS 일정 · 11/27 단축장 시각 · G20 Miami 일자 · CR(12/11) 진행상황</li>
+      <li><span class="pill">EVENT</span><b>USTR Section 301 과잉생산 관세</b>: 연방관보 원문·국가별 세율(中·베트남 외 미공개)·기존 관세 중첩 여부(Yahoo vs RTE/InvestmentNews 충돌)·반도체 제외 여부(Yahoo 단독)·의견수렴/청문회 일정 · EU·日·韓·臺 반응</li>
+      <li><span class="pill">EVENT</span>Ras Tanura 드론 피해·배후 · Houthi 리야드 타격 사우디 확인 · IRGC 기뢰 주장(11/23 3척·11/24 컨테이너선) vs UKMTO · 美 대이란 사이버공격 조사(WSJ) · Qatar 채널(11/24-25 보도 없음)</li>
+      <li><span class="pill">EVENT</span>Islamabad Memorandum 원문 · Mojtaba Khamenei 현재 상태 · 7월 이후 이스라엘-이란 직접 교전 여부</li>
+      <li><span class="pill">EVENT</span>OPEC+ 11/29 회의 형식·2027 기준선(기대치 보도 미확보)</li>
+      <li><span class="pill">EVENT</span>프랑스 2027 예산 일정(상원 표결일·49.3·오르도낭스) · 11/26 CMP 결과 · S&amp;P 프랑스 리뷰 일정 · 독일 예산 본회의(11/27)</li>
+      <li><span class="pill">EVENT</span>대만 무기판매 공식 통보 · PLA 명명 훈련 · Sec.301 반도체 관세 인상일(2027-06-23) · TWSE 공매도 규제 내용</li>
+      <li><span class="pill">EVENT</span>한국 11월 수출 발표일 · 11/1-20 반도체 MoM 비교 (N5 반증) · DRAM·NAND 계약가 최신치(NAND 현물 1개월 -20% 헤드라인만 확인) · BOK 11/26 결과</li>
+      <li><span class="pill">POSITIONING</span>CFTC 비상업 net(원유·JPY·UST) · 한국 메모리 외인 숏 잔고(대만 규제 후 한국 이동설, KJD 익명 출처) · 11/25 외인 -₩1.95tn 중 프로그램 비중 · Brent OI(2024년 이후 최저권, Bloomberg)</li>
+      <li><span class="pill">FUND</span>TGA · Treasury 바이백 · 레포·SOFR-IORB 스프레드 · QRA 쿠폰 사이즈 1차 출처</li>
+      <li><span class="pill">FUND</span>HY·IG 스프레드(데이터 미확보, Nomura McElligott "신용 스프레드 확대" 언급) · AI CapEx 회사채 발행 동향</li>
+    </ol>
+  </section>
+
+  <div class="foot">
+    <p><b>Disclaimer.</b> 본 문서는 내부 의사결정용 워킹 도큐먼트로 투자권유가 아니다. 확률·variant view·사이징은 전략가 주관 <span class="tag t-v">V</span>이며, <span class="tag t-f">F</span> 사실은 2026-11-26 기준 1차 자료·복수 통신 보도 라이브 조회 기반으로 단말 재확인을 전제한다. 모든 거래는 명시된 invalidation에서 청산한다. 모르는 수치는 ⚠ verify 또는 "데이터 미확보, 라이브 확인 필요"로 표기했으며 임의 생성하지 않았다.</p>
+    <p><b>개정 이력.</b> 2026-06-26 초판(4섹션, T1~T8) · 2026-11-23 전면 개정: Errata 6건, Prior Book Scorecard 신설(T1·T3 PAID), 우선순위 재편(1 미국 통화·재정 신설, 미중 1→5), 블로터 N1~N8 재구성. · 2026-11-24 일일 갱신: NVIDIA Huang 복귀 급반등·Brent $89 반영, Errata 2건(NVIDIA 경위·KOSPI 종가), N1~N8 일일 추적표 신설, 반증 도달 0건. · 2026-11-25 일일 갱신: 미 AI 칩 되돌림(NVDA 약 -7.4%)·소비자신뢰 103.3·아시아 지연 급반등(KOSPI +6.32%, TAIEX +8.99%)·Brent $91.40 반영, Errata 2건(NVDA 11/23 종가·트럼프 발언 해석), N5 시차 손실 해소, 반증 도달 0건. · 2026-11-26 일일 갱신: USTR Section 301 과잉생산 관세 제안(中 20% 등 14개국)·10월 core PCE 3.3%에도 커브 전 구간 하락(10y 4.846%)·아시아 칩 재급락(KOSPI -6.16%, SK하이닉스 -11.05%)·Brent $94.61 반영, Errata 3건(NVDA 11/24 종가·SOX·NVIDIA 의회 일정), 반증 도달 0건. 과거판은 <a href="archive/">archive/</a>.</p>
+    <p>Self-contained HTML · 외부 의존성 없음 (CDN/폰트/스크립트 미사용) · 오프라인·인쇄 렌더링 대응.</p>
+  </div>
+
+</div>
+</body>
+</html>
